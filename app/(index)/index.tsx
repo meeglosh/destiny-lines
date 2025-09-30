@@ -1,181 +1,217 @@
-import React from "react";
-import { Stack, router } from "expo-router";
-import { FlatList, Pressable, StyleSheet, View, Text } from "react-native";
-// Components
-import { IconCircle } from "@/components/IconCircle";
-import { IconSymbol } from "@/components/IconSymbol";
-import { BodyScrollView } from "@/components/BodyScrollView";
-import { Button } from "@/components/button";
-// Constants & Hooks
-import { backgroundColors } from "@/constants/Colors";
 
-const ICON_COLOR = "#007AFF";
+import React from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { router, Stack } from 'expo-router';
+import { commonStyles, colors, textStyles, buttonStyles } from '@/styles/commonStyles';
+import { Button } from '@/components/button';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HomeScreen() {
+  console.log('HomeScreen rendered');
 
-  const modalDemos = [
-    {
-      title: "Standard Modal",
-      description: "Full screen modal presentation",
-      route: "/modal",
-      color: "#007AFF",
-    },
-    {
-      title: "Form Sheet",
-      description: "Bottom sheet with detents and grabber",
-      route: "/formsheet",
-      color: "#34C759",
-    },
-    {
-      title: "Transparent Modal",
-      description: "Overlay without obscuring background",
-      route: "/transparent-modal",
-      color: "#FF9500",
-    }
-  ];
+  const handleStartReading = () => {
+    console.log('Navigate to camera screen');
+    router.push('/camera');
+  };
 
-  const renderModalDemo = ({ item }: { item: typeof modalDemos[0] }) => (
-    <View style={styles.demoCard}>
-      <View style={[styles.demoIcon, { backgroundColor: item.color }]}>
-        <IconSymbol name="square.grid.3x3" color="white" size={24} />
-      </View>
-      <View style={styles.demoContent}>
-        <Text style={styles.demoTitle}>{item.title}</Text>
-        <Text style={styles.demoDescription}>{item.description}</Text>
-      </View>
-      <Button
-        variant="outline"
-        size="sm"
-        onPress={() => router.push(item.route as any)}
-      >
-        Try It
-      </Button>
-    </View>
-  );
+  const handleViewHistory = () => {
+    console.log('Navigate to history screen');
+    router.push('/history');
+  };
 
-  const renderEmptyList = () => (
-    <BodyScrollView contentContainerStyle={styles.emptyStateContainer}>
-      <IconCircle
-        emoji=""
-        backgroundColor={
-          backgroundColors[Math.floor(Math.random() * backgroundColors.length)]
-        }
-      />
-    </BodyScrollView>
-  );
-
-  const renderHeaderRight = () => (
-    <Pressable
-      onPress={() => {console.log("plus")}}
-      style={styles.headerButtonContainer}
-    >
-      <IconSymbol name="plus" color={ICON_COLOR} />
-    </Pressable>
-  );
-
-  const renderHeaderLeft = () => (
-    <Pressable
-      onPress={() => {console.log("gear")}}
-      style={styles.headerButtonContainer}
-    >
-      <IconSymbol
-        name="gear"
-        color={ICON_COLOR}
-      />
-    </Pressable>
-  );
+  const handlePremium = () => {
+    console.log('Navigate to premium screen');
+    router.push('/premium');
+  };
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "Building the app...",
-          headerRight: renderHeaderRight,
-          headerLeft: renderHeaderLeft,
-        }}
+    <View style={commonStyles.wrapper}>
+      <Stack.Screen 
+        options={{ 
+          title: 'Destiny Lines',
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.text,
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerRight: () => (
+            <Pressable onPress={handlePremium} style={styles.premiumButton}>
+              <Text style={styles.premiumButtonText}>✨ Premium</Text>
+            </Pressable>
+          ),
+        }} 
       />
-      <View style={styles.container}>
-        <FlatList
-          data={modalDemos}
-          renderItem={renderModalDemo}
-          keyExtractor={(item) => item.route}
-          contentContainerStyle={styles.listContainer}
-          contentInsetAdjustmentBehavior="automatic"
-          showsVerticalScrollIndicator={false}
-        />
-      </View>
-    </>
+      
+      <LinearGradient
+        colors={['#F5F1E8', '#E8DCC6', '#D4C4A8']}
+        style={styles.container}
+      >
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <Text style={styles.appTitle}>✋ Destiny Lines</Text>
+          <Text style={styles.subtitle}>Discover Your Palm&apos;s Secrets</Text>
+          <Text style={styles.description}>
+            Let AI reveal the mysteries hidden in the lines of your palm
+          </Text>
+        </View>
+
+        {/* Main Action Section */}
+        <View style={styles.actionSection}>
+          <View style={styles.palmIcon}>
+            <Text style={styles.palmEmoji}>🔮</Text>
+          </View>
+          
+          <Button
+            onPress={handleStartReading}
+            style={styles.primaryButton}
+            textStyle={styles.primaryButtonText}
+          >
+            Start Palm Reading
+          </Button>
+          
+          <Pressable onPress={handleViewHistory} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>View Past Readings</Text>
+          </Pressable>
+        </View>
+
+        {/* Features Section */}
+        <View style={styles.featuresSection}>
+          <View style={styles.feature}>
+            <Text style={styles.featureIcon}>🌿</Text>
+            <Text style={styles.featureText}>Life Line Analysis</Text>
+          </View>
+          <View style={styles.feature}>
+            <Text style={styles.featureIcon}>🧠</Text>
+            <Text style={styles.featureText}>Head Line Insights</Text>
+          </View>
+          <View style={styles.feature}>
+            <Text style={styles.featureIcon}>❤️</Text>
+            <Text style={styles.featureText}>Heart Line Reading</Text>
+          </View>
+        </View>
+
+        {/* Ad Banner Placeholder */}
+        <View style={styles.adBanner}>
+          <Text style={styles.adText}>📱 Advertisement Space</Text>
+          <Pressable onPress={handlePremium}>
+            <Text style={styles.removeAdsText}>Remove ads with Premium →</Text>
+          </Pressable>
+        </View>
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 20,
+  },
+  premiumButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginRight: 10,
+  },
+  premiumButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   headerSection: {
-    padding: 20,
-    paddingBottom: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    alignItems: 'center',
+    marginBottom: 40,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+  appTitle: {
+    ...textStyles.title,
+    fontSize: 32,
     marginBottom: 8,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 22,
+  subtitle: {
+    ...textStyles.subtitle,
+    marginBottom: 16,
   },
-  listContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+  description: {
+    ...textStyles.body,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
-  demoCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  demoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  actionSection: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 30,
   },
-  demoContent: {
+  palmIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 40,
+    ...commonStyles.shadow,
+  },
+  palmEmoji: {
+    fontSize: 60,
+  },
+  primaryButton: {
+    ...buttonStyles.primary,
+    width: '100%',
+    maxWidth: 300,
+    marginBottom: 16,
+  },
+  primaryButtonText: {
+    ...textStyles.buttonPrimary,
+  },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+  },
+  secondaryButtonText: {
+    ...textStyles.caption,
+    color: colors.textSecondary,
+    textDecorationLine: 'underline',
+    fontSize: 16,
+  },
+  featuresSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  feature: {
+    alignItems: 'center',
     flex: 1,
   },
-  demoTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+  featureIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  featureText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  adBanner: {
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderStyle: 'dashed',
+  },
+  adText: {
+    fontSize: 14,
+    color: colors.textLight,
     marginBottom: 4,
   },
-  demoDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 18,
-  },
-  emptyStateContainer: {
-    alignItems: "center",
-    gap: 8,
-    paddingTop: 100,
-  },
-  headerButtonContainer: {
-    padding: 6, // Just enough padding around the 24px icon
+  removeAdsText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
