@@ -1,28 +1,22 @@
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Image, Pressable } from 'react-native';
-import { router, Stack } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import { commonStyles, colors, textStyles, buttonStyles } from '@/styles/commonStyles';
-import { Button } from '@/components/button';
+import { View, Text, StyleSheet, Alert, Image, Pressable, SafeAreaView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { router, Stack } from 'expo-router';
+import { Button } from '@/components/button';
 import AdBanner from '@/components/AdBanner';
+import { commonStyles, colors, textStyles, buttonStyles } from '@/styles/commonStyles';
 
 export default function CameraScreen() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
+  const [image, setImage] = useState<string | null>(null);
   console.log('CameraScreen rendered');
 
   const requestPermissions = async () => {
     console.log('Requesting camera permissions');
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission Required',
-        'Camera permission is needed to take photos of your palm.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Permission needed', 'Camera permission is required to take photos.');
       return false;
     }
     return true;
@@ -42,8 +36,8 @@ export default function CameraScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        console.log('Image captured successfully');
-        setSelectedImage(result.assets[0].uri);
+        console.log('Image captured:', result.assets[0].uri);
+        setImage(result.assets[0].uri);
       }
     } catch (error) {
       console.log('Error taking picture:', error);
@@ -62,8 +56,8 @@ export default function CameraScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        console.log('Image selected from gallery');
-        setSelectedImage(result.assets[0].uri);
+        console.log('Image selected:', result.assets[0].uri);
+        setImage(result.assets[0].uri);
       }
     } catch (error) {
       console.log('Error selecting image:', error);
@@ -71,40 +65,32 @@ export default function CameraScreen() {
     }
   };
 
-  const analyzeImage = async () => {
-    if (!selectedImage) return;
-
-    console.log('Starting palm analysis');
-    setIsAnalyzing(true);
-
-    // Simulate AI analysis delay
-    setTimeout(() => {
-      console.log('Analysis complete, navigating to results');
-      setIsAnalyzing(false);
-      router.push({
-        pathname: '/results',
-        params: { imageUri: selectedImage }
-      });
-    }, 3000);
+  const analyzeImage = () => {
+    if (!image) {
+      Alert.alert('No Image', 'Please take a photo or select one from your gallery first.');
+      return;
+    }
+    console.log('Analyzing image:', image);
+    router.push({
+      pathname: '/results',
+      params: { imageUri: image }
+    });
   };
 
   const retakePicture = () => {
     console.log('Retaking picture');
-    setSelectedImage(null);
+    setImage(null);
   };
 
   return (
-    <View style={commonStyles.wrapper}>
+    <SafeAreaView style={commonStyles.wrapper}>
       <Stack.Screen 
         options={{ 
-          title: 'Capture Your Palm',
+          title: 'Capture Palm',
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.text,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} style={styles.backButton}>
-              <Text style={styles.backButtonText}>← Back</Text>
-            </Pressable>
-          ),
+          headerTitleStyle: { fontWeight: 'bold' },
+          headerShown: true,
         }} 
       />
       
@@ -112,156 +98,196 @@ export default function CameraScreen() {
         colors={['#F5F1E8', '#E8DCC6', '#D4C4A8']}
         style={styles.container}
       >
-        {!selectedImage ? (
-          <>
-            {/* Instructions Section */}
-            <View style={styles.instructionsSection}>
-              <Text style={styles.title}>📸 Take a Clear Photo</Text>
-              <Text style={styles.instruction}>
-                For the best reading, please:
-              </Text>
-              <View style={styles.tipsList}>
-                <Text style={styles.tip}>• Hold your palm flat and steady</Text>
-                <Text style={styles.tip}>• Ensure good lighting</Text>
-                <Text style={styles.tip}>• Keep your hand centered</Text>
-                <Text style={styles.tip}>• Avoid shadows on your palm</Text>
-              </View>
-            </View>
+        <View style={styles.content}>
+          {/* Instructions */}
+          <View style={styles.instructionsSection}>
+            <Text style={styles.title}>📸 Capture Your Palm</Text>
+            <Text style={styles.instructions}>
+              For the best reading, ensure your palm is well-lit and clearly visible. 
+              Hold your hand steady and capture a clear image.
+            </Text>
+          </View>
 
-            {/* Ad Banner */}
-            <AdBanner style={styles.adBanner} />
-
-            {/* Action Buttons */}
-            <View style={styles.actionSection}>
-              <Button
-                onPress={takePicture}
-                style={styles.primaryButton}
-                textStyle={styles.primaryButtonText}
-              >
-                📷 Take Photo
-              </Button>
-              
-              <Button
-                onPress={selectFromGallery}
-                style={styles.secondaryButton}
-                textStyle={styles.secondaryButtonText}
-              >
-                🖼️ Choose from Gallery
-              </Button>
-            </View>
-          </>
-        ) : (
-          <>
-            {/* Image Preview Section */}
-            <View style={styles.previewSection}>
-              <Text style={styles.title}>Your Palm Photo</Text>
+          {/* Image Preview */}
+          <View style={styles.imageSection}>
+            {image ? (
               <View style={styles.imageContainer}>
-                <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+                <Image source={{ uri: image }} style={styles.palmImage} />
+                <Pressable onPress={retakePicture} style={styles.retakeButton}>
+                  <Text style={styles.retakeButtonText}>Retake Photo</Text>
+                </Pressable>
               </View>
-            </View>
+            ) : (
+              <View style={styles.placeholderContainer}>
+                <View style={styles.placeholder}>
+                  <Text style={styles.placeholderEmoji}>✋</Text>
+                  <Text style={styles.placeholderText}>Your palm photo will appear here</Text>
+                </View>
+              </View>
+            )}
+          </View>
 
-            {/* Analysis Actions */}
-            <View style={styles.actionSection}>
+          {/* Action Buttons */}
+          <View style={styles.buttonSection}>
+            {!image ? (
+              <>
+                <Button
+                  onPress={takePicture}
+                  style={styles.primaryButton}
+                  textStyle={styles.primaryButtonText}
+                >
+                  📷 Take Photo
+                </Button>
+                
+                <Button
+                  onPress={selectFromGallery}
+                  style={styles.secondaryButton}
+                  textStyle={styles.secondaryButtonText}
+                >
+                  🖼️ Choose from Gallery
+                </Button>
+              </>
+            ) : (
               <Button
                 onPress={analyzeImage}
-                loading={isAnalyzing}
-                disabled={isAnalyzing}
                 style={styles.primaryButton}
                 textStyle={styles.primaryButtonText}
               >
-                {isAnalyzing ? 'Analyzing Palm...' : '🔮 Analyze Palm'}
+                ✨ Get My Reading
               </Button>
-              
-              <Button
-                onPress={retakePicture}
-                disabled={isAnalyzing}
-                style={styles.secondaryButton}
-                textStyle={styles.secondaryButtonText}
-              >
-                📷 Retake Photo
-              </Button>
-            </View>
-          </>
-        )}
+            )}
+          </View>
+
+          {/* Ad Banner */}
+          <AdBanner style={styles.adBanner} showRemoveAds={true} />
+        </View>
       </LinearGradient>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  content: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 40,
-  },
-  backButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  backButtonText: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '500',
+    paddingBottom: 20,
   },
   instructionsSection: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    marginBottom: 30,
   },
   title: {
-    ...textStyles.title,
     fontSize: 24,
-    marginBottom: 20,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  instruction: {
-    ...textStyles.subtitle,
-    fontSize: 18,
-    marginBottom: 20,
+  instructions: {
+    fontSize: 16,
+    fontFamily: 'OpenSans_400Regular',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 10,
   },
-  tipsList: {
-    alignItems: 'flex-start',
-  },
-  tip: {
-    ...textStyles.body,
-    marginBottom: 8,
-  },
-  previewSection: {
+  imageSection: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 30,
   },
   imageContainer: {
-    width: 280,
-    height: 280,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    ...commonStyles.shadow,
+    alignItems: 'center',
   },
-  previewImage: {
+  palmImage: {
+    width: 250,
+    height: 250,
+    borderRadius: 20,
+    marginBottom: 16,
+    borderWidth: 3,
+    borderColor: colors.white,
+  },
+  retakeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  retakeButtonText: {
+    fontSize: 16,
+    fontFamily: 'OpenSans_600SemiBold',
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+  placeholderContainer: {
+    width: 250,
+    height: 250,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholder: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
-  adBanner: {
-    marginVertical: 20,
-  },
-  actionSection: {
-    paddingTop: 20,
-  },
-  primaryButton: {
-    ...buttonStyles.primary,
+  placeholderEmoji: {
+    fontSize: 60,
     marginBottom: 16,
   },
+  placeholderText: {
+    fontSize: 16,
+    fontFamily: 'OpenSans_400Regular',
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  buttonSection: {
+    gap: 12,
+  },
+  primaryButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+  },
   primaryButtonText: {
-    ...textStyles.buttonPrimary,
+    fontSize: 18,
+    fontFamily: 'OpenSans_700Bold',
+    color: colors.white,
+    textAlign: 'center',
   },
   secondaryButton: {
-    ...buttonStyles.secondary,
+    backgroundColor: colors.white,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: colors.secondary,
   },
   secondaryButtonText: {
-    ...textStyles.buttonSecondary,
+    fontSize: 16,
+    fontFamily: 'OpenSans_600SemiBold',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  adBanner: {
+    marginTop: 20,
   },
 });

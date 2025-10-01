@@ -28,7 +28,13 @@ export const buttonStyles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 25,
-    boxShadow: `0px 4px 15px ${colors.shadow}`,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
     elevation: 5,
   },
   secondary: {
@@ -89,16 +95,11 @@ export const textStyles = StyleSheet.create({
 export const commonStyles = StyleSheet.create({
   wrapper: {
     backgroundColor: colors.background,
-    width: '100%',
-    height: '100%',
+    flex: 1,
   },
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     flex: 1,
@@ -123,11 +124,23 @@ export const commonStyles = StyleSheet.create({
     padding: 20,
     marginVertical: 8,
     width: '100%',
-    boxShadow: `0px 2px 10px ${colors.shadow}`,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
     elevation: 3,
   },
   shadow: {
-    boxShadow: `0px 4px 15px ${colors.shadow}`,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
     elevation: 5,
   },
 });

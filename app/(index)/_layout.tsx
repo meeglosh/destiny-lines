@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNetworkState } from "expo-network";
 import { Redirect, router, Stack } from "expo-router";
@@ -24,31 +25,15 @@ export default function AppIndexLayout() {
     }
   }, [networkState.isConnected, networkState.isInternetReachable]);
 
-//   if (!user) {
-//     return <Redirect href="/(auth)" />;
-//   }
-
   return (
-        <WidgetProvider>
-            <Stack
-              screenOptions={{
-                ...(process.env.EXPO_OS !== "ios"
-                  ? {}
-                  : {
-                      headerLargeTitle: true,
-                      headerTransparent: true,
-                      headerBlurEffect: "systemChromeMaterial",
-                      headerLargeTitleShadowVisible: false,
-                      headerShadowVisible: true,
-                      headerLargeStyle: {
-                        // NEW: Make the large title transparent to match the background.
-                        backgroundColor: "transparent",
-                      },
-                    }),
-              }}
-            >
-              {/* Modal Demo Screens - These are configured in their individual screen files */}
-            </Stack>
-        </WidgetProvider>
+    <WidgetProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false, // Disable default headers to prevent conflicts
+        }}
+      >
+        {/* All screens will handle their own headers */}
+      </Stack>
+    </WidgetProvider>
   );
 }
