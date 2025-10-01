@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { commonStyles, colors, textStyles, buttonStyles } from '@/styles/commonStyles';
 import { Button } from '@/components/button';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -75,19 +75,6 @@ export default function PremiumScreen() {
 
   return (
     <View style={commonStyles.wrapper}>
-      <Stack.Screen 
-        options={{ 
-          title: 'Destiny Lines Premium',
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.text,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} style={styles.backButton}>
-              <Text style={styles.backButtonText}>← Back</Text>
-            </Pressable>
-          ),
-        }} 
-      />
-      
       <LinearGradient
         colors={['#F5F1E8', '#E8DCC6', '#D4C4A8']}
         style={styles.container}
@@ -171,20 +158,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 40,
-  },
-  backButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    minHeight: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '500',
-    lineHeight: 20,
-    includeFontPadding: false,
   },
   header: {
     alignItems: 'center',

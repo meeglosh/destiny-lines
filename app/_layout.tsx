@@ -55,35 +55,92 @@ export default function RootLayout() {
     },
   };
 
+  // Custom dark theme for the palm reading app
+  const PalmReadingDarkTheme: Theme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      primary: '#D4A574',
+      background: '#1A1A1A',
+      card: '#2A2A2A',
+      text: '#E8D5B7',
+      border: '#4A4A4A',
+      notification: '#D4A574',
+    },
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={PalmReadingTheme}>
-        <SystemBars style="dark" />
+      <ThemeProvider value={colorScheme === 'dark' ? PalmReadingDarkTheme : PalmReadingTheme}>
+        <SystemBars style={colorScheme === 'dark' ? "light" : "dark"} />
         <Stack>
           <Stack.Screen name="(index)" options={{ headerShown: false }} />
           <Stack.Screen 
             name="camera" 
             options={{ 
-              presentation: 'modal',
               headerShown: true,
+              title: "Capture Palm",
+              headerStyle: {
+                backgroundColor: colorScheme === 'dark' ? '#2A2A2A' : '#F5F1E8',
+              },
+              headerTintColor: colorScheme === 'dark' ? '#E8D5B7' : '#5D4037',
+              headerTitleStyle: {
+                fontFamily: 'PlayfairDisplay_700Bold',
+                fontSize: 20,
+              },
+              headerBackTitle: "Back",
             }} 
           />
           <Stack.Screen 
             name="results" 
             options={{ 
-              presentation: 'modal',
               headerShown: true,
+              title: "Your Reading",
+              headerStyle: {
+                backgroundColor: colorScheme === 'dark' ? '#2A2A2A' : '#F5F1E8',
+              },
+              headerTintColor: colorScheme === 'dark' ? '#E8D5B7' : '#5D4037',
+              headerTitleStyle: {
+                fontFamily: 'PlayfairDisplay_700Bold',
+                fontSize: 20,
+              },
+              headerBackTitle: "Back",
             }} 
           />
           <Stack.Screen 
             name="history" 
             options={{ 
-              presentation: 'modal',
               headerShown: true,
+              title: "Reading History",
+              headerStyle: {
+                backgroundColor: colorScheme === 'dark' ? '#2A2A2A' : '#F5F1E8',
+              },
+              headerTintColor: colorScheme === 'dark' ? '#E8D5B7' : '#5D4037',
+              headerTitleStyle: {
+                fontFamily: 'PlayfairDisplay_700Bold',
+                fontSize: 20,
+              },
+              headerBackTitle: "Back",
+            }} 
+          />
+          <Stack.Screen 
+            name="premium" 
+            options={{ 
+              headerShown: true,
+              title: "Premium",
+              headerStyle: {
+                backgroundColor: colorScheme === 'dark' ? '#2A2A2A' : '#F5F1E8',
+              },
+              headerTintColor: colorScheme === 'dark' ? '#E8D5B7' : '#5D4037',
+              headerTitleStyle: {
+                fontFamily: 'PlayfairDisplay_700Bold',
+                fontSize: 20,
+              },
+              headerBackTitle: "Back",
             }} 
           />
         </Stack>
-        <StatusBar style="dark" />
+        <StatusBar style={colorScheme === 'dark' ? "light" : "dark"} />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Alert, Image, Pressable, SafeAreaView, Platform
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { router, Stack } from 'expo-router';
+import { router } from 'expo-router';
 import { Button } from '@/components/button';
 import AdBanner from '@/components/AdBanner';
 import { commonStyles, colors, textStyles, buttonStyles } from '@/styles/commonStyles';
@@ -84,16 +84,6 @@ export default function CameraScreen() {
 
   return (
     <SafeAreaView style={commonStyles.wrapper}>
-      <Stack.Screen 
-        options={{ 
-          title: 'Capture Palm',
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.text,
-          headerTitleStyle: { fontWeight: 'bold' },
-          headerShown: true,
-        }} 
-      />
-      
       <LinearGradient
         colors={['#F5F1E8', '#E8DCC6', '#D4C4A8']}
         style={styles.container}
