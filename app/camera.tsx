@@ -135,6 +135,7 @@ export default function CameraScreen() {
                   onPress={takePicture}
                   style={styles.primaryButton}
                   textStyle={styles.primaryButtonText}
+                  size="lg"
                 >
                   📷 Take Photo
                 </Button>
@@ -143,6 +144,8 @@ export default function CameraScreen() {
                   onPress={selectFromGallery}
                   style={styles.secondaryButton}
                   textStyle={styles.secondaryButtonText}
+                  size="md"
+                  variant="outline"
                 >
                   🖼️ Choose from Gallery
                 </Button>
@@ -152,6 +155,7 @@ export default function CameraScreen() {
                 onPress={analyzeImage}
                 style={styles.primaryButton}
                 textStyle={styles.primaryButtonText}
+                size="lg"
               >
                 ✨ Get My Reading
               </Button>
@@ -213,14 +217,19 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   retakeButton: {
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 20,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   retakeButtonText: {
     fontSize: 16,
     fontFamily: 'OpenSans_600SemiBold',
     color: colors.primary,
     textDecorationLine: 'underline',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   placeholderContainer: {
     width: 250,
@@ -251,13 +260,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   buttonSection: {
-    gap: 12,
+    gap: 16,
   },
   primaryButton: {
     backgroundColor: colors.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 25,
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 28,
+    minHeight: 56,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -266,26 +276,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 15,
     elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
     fontSize: 18,
     fontFamily: 'OpenSans_700Bold',
     color: colors.white,
     textAlign: 'center',
+    lineHeight: 22,
+    includeFontPadding: false,
   },
   secondaryButton: {
     backgroundColor: colors.white,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 28,
     borderWidth: 2,
     borderColor: colors.secondary,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryButtonText: {
     fontSize: 16,
     fontFamily: 'OpenSans_600SemiBold',
     color: colors.primary,
     textAlign: 'center',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   adBanner: {
     marginTop: 20,

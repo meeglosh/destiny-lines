@@ -60,6 +60,7 @@ export default function HomeScreen() {
               onPress={handleStartReading}
               style={styles.primaryButton}
               textStyle={styles.primaryButtonText}
+              size="lg"
             >
               Start Palm Reading
             </Button>
@@ -120,14 +121,19 @@ const styles = StyleSheet.create({
   },
   premiumButton: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 18,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   premiumButtonText: {
     color: colors.white,
     fontSize: 14,
     fontWeight: 'bold',
+    lineHeight: 16,
+    includeFontPadding: false,
   },
   content: {
     flex: 1,
@@ -181,12 +187,13 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: colors.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 25,
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 28,
     width: '100%',
-    maxWidth: 300,
+    maxWidth: 320,
     marginBottom: 16,
+    minHeight: 56,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -195,22 +202,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 15,
     elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
     fontSize: 18,
     fontFamily: 'OpenSans_700Bold',
     color: colors.white,
     textAlign: 'center',
+    lineHeight: 22,
+    includeFontPadding: false,
   },
   secondaryButton: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 30,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryButtonText: {
     fontSize: 16,
     fontFamily: 'OpenSans_400Regular',
     color: colors.textSecondary,
     textDecorationLine: 'underline',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   featuresSection: {
     flexDirection: 'row',

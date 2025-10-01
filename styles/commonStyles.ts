@@ -25,9 +25,10 @@ export const fonts = {
 export const buttonStyles = StyleSheet.create({
   primary: {
     backgroundColor: colors.primary,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 32,
     borderRadius: 25,
+    minHeight: 56,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -36,19 +37,27 @@ export const buttonStyles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 15,
     elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secondary: {
     backgroundColor: colors.white,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 25,
+    minHeight: 52,
     borderWidth: 2,
     borderColor: colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tertiary: {
     backgroundColor: 'transparent',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 32,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
@@ -83,12 +92,16 @@ export const textStyles = StyleSheet.create({
     fontFamily: fonts.bold,
     color: colors.white,
     textAlign: 'center',
+    lineHeight: 22,
+    includeFontPadding: false,
   },
   buttonSecondary: {
     fontSize: 16,
     fontFamily: fonts.semiBold,
     color: colors.primary,
     textAlign: 'center',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
 });
 

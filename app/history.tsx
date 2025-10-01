@@ -113,6 +113,7 @@ export default function HistoryScreen() {
               onPress={getNewReading}
               style={styles.primaryButton}
               textStyle={styles.primaryButtonText}
+              size="lg"
             >
               ✨ New Palm Reading
             </Button>
@@ -138,11 +139,16 @@ const styles = StyleSheet.create({
   backButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     color: colors.text,
     fontSize: 16,
     fontWeight: '500',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   header: {
     alignItems: 'center',
@@ -230,16 +236,21 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: '#6B4423',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 40,
-    borderRadius: 25,
+    borderRadius: 28,
+    minHeight: 56,
     boxShadow: '0px 4px 15px rgba(0, 0, 0, 0.2)',
     elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
+    lineHeight: 22,
+    includeFontPadding: false,
   },
 });

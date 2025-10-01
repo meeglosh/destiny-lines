@@ -137,6 +137,7 @@ export default function PremiumScreen() {
               disabled={isPurchasing}
               style={styles.purchaseButton}
               textStyle={styles.purchaseButtonText}
+              size="lg"
             >
               {isPurchasing ? 'Processing...' : '🔮 Upgrade to Premium'}
             </Button>
@@ -174,11 +175,16 @@ const styles = StyleSheet.create({
   backButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     color: colors.text,
     fontSize: 16,
     fontWeight: '500',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   header: {
     alignItems: 'center',
@@ -190,9 +196,11 @@ const styles = StyleSheet.create({
     color: colors.primary,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
     marginBottom: 16,
+    lineHeight: 18,
+    includeFontPadding: false,
   },
   title: {
     ...textStyles.title,
@@ -270,22 +278,45 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   purchaseButton: {
-    ...buttonStyles.primary,
+    backgroundColor: colors.primary,
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 28,
     width: '100%',
     marginBottom: 16,
+    minHeight: 56,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   purchaseButtonText: {
-    ...textStyles.buttonPrimary,
-    fontSize: 20,
+    fontSize: 18,
+    fontFamily: 'OpenSans_700Bold',
+    color: colors.white,
+    textAlign: 'center',
+    lineHeight: 22,
+    includeFontPadding: false,
   },
   restoreButton: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   restoreButtonText: {
     fontSize: 16,
     color: colors.textLight,
     textDecorationLine: 'underline',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   termsSection: {
     paddingHorizontal: 20,

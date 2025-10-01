@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   ActivityIndicator,
@@ -39,11 +40,11 @@ export const Button: React.FC<ButtonProps> = ({
 
   const sizeStyles: Record<
     ButtonSize,
-    { height: number; fontSize: number; padding: number }
+    { minHeight: number; fontSize: number; paddingVertical: number; paddingHorizontal: number }
   > = {
-    sm: { height: 36, fontSize: 14, padding: 12 },
-    md: { height: 44, fontSize: 16, padding: 16 },
-    lg: { height: 55, fontSize: 18, padding: 20 },
+    sm: { minHeight: 40, fontSize: 14, paddingVertical: 12, paddingHorizontal: 16 },
+    md: { minHeight: 50, fontSize: 16, paddingVertical: 16, paddingHorizontal: 24 },
+    lg: { minHeight: 56, fontSize: 18, paddingVertical: 18, paddingHorizontal: 32 },
   };
 
   const getVariantStyle = () => {
@@ -96,8 +97,9 @@ export const Button: React.FC<ButtonProps> = ({
       style={[
         getVariantStyle(),
         {
-          height: sizeStyles[size].height,
-          paddingHorizontal: sizeStyles[size].padding,
+          minHeight: sizeStyles[size].minHeight,
+          paddingVertical: sizeStyles[size].paddingVertical,
+          paddingHorizontal: sizeStyles[size].paddingHorizontal,
           opacity: disabled ? 0.5 : 1,
         },
         style,
@@ -112,11 +114,16 @@ export const Button: React.FC<ButtonProps> = ({
               fontSize: sizeStyles[size].fontSize,
               color: getTextColor(),
               textAlign: "center",
-              marginBottom: 0,
               fontWeight: "700",
+              lineHeight: sizeStyles[size].fontSize * 1.3,
+              includeFontPadding: false,
+              textAlignVertical: "center",
             },
             textStyle,
           ])}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.8}
         >
           {children}
         </Text>

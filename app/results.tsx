@@ -142,6 +142,7 @@ export default function ResultsScreen() {
               disabled={isSharing}
               style={styles.primaryButton}
               textStyle={styles.primaryButtonText}
+              size="lg"
             >
               {isSharing ? 'Sharing...' : '📤 Share Reading'}
             </Button>
@@ -150,6 +151,8 @@ export default function ResultsScreen() {
               onPress={saveReading}
               style={styles.secondaryButton}
               textStyle={styles.secondaryButtonText}
+              size="md"
+              variant="outline"
             >
               💾 Save to History
             </Button>
@@ -158,6 +161,8 @@ export default function ResultsScreen() {
               onPress={getNewReading}
               style={styles.tertiaryButton}
               textStyle={styles.tertiaryButtonText}
+              size="md"
+              variant="ghost"
             >
               🔄 New Reading
             </Button>
@@ -183,11 +188,16 @@ const styles = StyleSheet.create({
   backButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonText: {
     color: colors.text,
     fontSize: 16,
     fontWeight: '500',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   header: {
     alignItems: 'center',
@@ -230,23 +240,59 @@ const styles = StyleSheet.create({
   },
   actionSection: {
     paddingTop: 20,
+    gap: 16,
   },
   primaryButton: {
-    ...buttonStyles.primary,
-    marginBottom: 12,
+    backgroundColor: colors.primary,
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    borderRadius: 28,
+    minHeight: 56,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButtonText: {
-    ...textStyles.buttonPrimary,
+    fontSize: 18,
+    fontFamily: 'OpenSans_700Bold',
+    color: colors.white,
+    textAlign: 'center',
+    lineHeight: 22,
+    includeFontPadding: false,
   },
   secondaryButton: {
-    ...buttonStyles.secondary,
-    marginBottom: 12,
+    backgroundColor: colors.white,
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.secondary,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryButtonText: {
-    ...textStyles.buttonSecondary,
+    fontSize: 16,
+    fontFamily: 'OpenSans_600SemiBold',
+    color: colors.primary,
+    textAlign: 'center',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   tertiaryButton: {
-    ...buttonStyles.tertiary,
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tertiaryButtonText: {
     color: colors.textSecondary,
@@ -254,5 +300,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'center',
     textDecorationLine: 'underline',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
 });
