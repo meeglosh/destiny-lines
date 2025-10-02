@@ -7,9 +7,11 @@ import { router } from 'expo-router';
 import { Button } from '@/components/button';
 import AdBanner from '@/components/AdBanner';
 import { commonStyles, colors, textStyles, buttonStyles } from '@/styles/commonStyles';
+import { analyzePalmImage, validateApiKey } from '@/utils/openaiService';
 
 export default function CameraScreen() {
   const [image, setImage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   console.log('CameraScreen rendered');
 
   const requestPermissions = async () => {
@@ -63,16 +65,49 @@ export default function CameraScreen() {
     }
   };
 
-  const analyzeImage = () => {
+  const analyzeImage = async () => {
     if (!image) {
       Alert.alert('No Image', 'Please take a photo or select one from your gallery first.');
       return;
     }
-    console.log('Analyzing image:', image);
-    router.push({
-      pathname: '/results',
-      params: { imageUri: image }
-    });
+
+    // Check if API key is configured
+    if (!validateApiKey()) {
+      Alert.alert(
+        'API Key Required',
+        'Please configure your OpenAI API key in utils/openaiService.ts to enable palm reading functionality.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    console.log('Starting palm analysis for image:', image);
+    setIsAnalyzing(true);
+
+    try {
+      // Call OpenAI API to analyze the palm
+      const palmReading = await analyzePalmImage(image);
+      
+      console.log('Palm analysis complete, navigating to results');
+      
+      // Navigate to results with the reading data
+      router.push({
+        pathname: '/results',
+        params: { 
+          imageUri: image,
+          reading: JSON.stringify(palmReading)
+        }
+      });
+    } catch (error) {
+      console.log('Error analyzing palm:', error);
+      Alert.alert(
+        'Analysis Failed', 
+        'Unable to analyze your palm at the moment. Please check your internet connection and try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const retakePicture = () => {
@@ -141,11 +176,13 @@ export default function CameraScreen() {
             ) : (
               <Button
                 onPress={analyzeImage}
+                loading={isAnalyzing}
+                disabled={isAnalyzing}
                 style={styles.primaryButton}
                 textStyle={styles.primaryButtonText}
                 size="lg"
               >
-                ✨ Get My Reading
+                {isAnalyzing ? '🔮 Analyzing Palm...' : '✨ Get My Reading'}
               </Button>
             )}
           </View>
