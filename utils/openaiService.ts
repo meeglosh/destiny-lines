@@ -39,7 +39,7 @@ export async function analyzePalmImage(imageUri: string): Promise<PalmReading> {
   try {
     // Convert image to base64
     const base64Image = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64',
     });
     
     console.log('Image converted to base64, length:', base64Image.length);
