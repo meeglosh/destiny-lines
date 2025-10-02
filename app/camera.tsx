@@ -30,8 +30,7 @@ export default function CameraScreen() {
     try {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false, // Removed the 1:1 aspect ratio restriction
         quality: 0.8,
       });
 
@@ -50,8 +49,7 @@ export default function CameraScreen() {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false, // Removed the 1:1 aspect ratio restriction
         quality: 0.8,
       });
 
@@ -94,7 +92,7 @@ export default function CameraScreen() {
             <Text style={styles.title}>📸 Capture Your Palm</Text>
             <Text style={styles.instructions}>
               For the best reading, ensure your palm is well-lit and clearly visible. 
-              Hold your hand steady and capture a clear image.
+              Hold your hand steady and capture a clear image of your entire palm.
             </Text>
           </View>
 
@@ -200,11 +198,12 @@ const styles = StyleSheet.create({
   },
   palmImage: {
     width: 250,
-    height: 250,
+    height: 300, // Changed to allow for portrait orientation
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 3,
     borderColor: colors.white,
+    resizeMode: 'contain', // Added to maintain aspect ratio
   },
   retakeButton: {
     paddingVertical: 10,
@@ -223,7 +222,7 @@ const styles = StyleSheet.create({
   },
   placeholderContainer: {
     width: 250,
-    height: 250,
+    height: 300, // Changed to allow for portrait orientation
     justifyContent: 'center',
     alignItems: 'center',
   },
