@@ -1,5 +1,5 @@
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 interface PalmReading {
   lifeLine: {
@@ -30,24 +30,32 @@ interface PalmReading {
 }
 
 // You'll need to set your OpenAI API key here
-const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY_HERE';
+const OPENAI_API_KEY = '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';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 export async function analyzePalmImage(imageUri: string): Promise<PalmReading> {
   console.log('Starting palm analysis for image:', imageUri);
   
   try {
+    // Validate API key first
+    if (!validateApiKey()) {
+      console.log('Invalid API key, using default reading');
+      return getDefaultReading();
+    }
+
     // Convert image to base64
+    console.log('Converting image to base64...');
     const base64Image = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: 'base64',
+      encoding: FileSystem.EncodingType.Base64,
     });
     
     console.log('Image converted to base64, length:', base64Image.length);
 
     // Prepare the prompt for palm reading
-    const prompt = `You are an expert palm reader. Analyze this palm image and provide a detailed reading in the exact format below. Be mystical but positive, and make the reading feel personal and insightful.
+    const prompt = `You are an expert palm reader with years of experience. Analyze this palm image and provide a detailed, personalized reading. Be mystical but positive, and make the reading feel personal and insightful.
 
-Please respond with ONLY a JSON object in this exact format:
+IMPORTANT: Respond with ONLY a valid JSON object in this exact format (no markdown, no extra text):
+
 {
   "lifeLine": {
     "icon": "🌿",
@@ -76,7 +84,9 @@ Please respond with ONLY a JSON object in this exact format:
   }
 }
 
-Make each section 2-3 sentences long, personal, and insightful. Focus on positive traits and potential.`;
+Make each section 2-3 sentences long, personal, and insightful. Focus on positive traits and potential. Analyze the actual palm lines, hand shape, and features visible in the image.`;
+
+    console.log('Making API call to OpenAI...');
 
     // Make API call to OpenAI
     const response = await fetch(OPENAI_API_URL, {
@@ -105,8 +115,9 @@ Make each section 2-3 sentences long, personal, and insightful. Focus on positiv
             ],
           },
         ],
-        max_tokens: 1000,
+        max_tokens: 1500,
         temperature: 0.7,
+        response_format: { type: "json_object" }
       }),
     });
 
@@ -114,32 +125,63 @@ Make each section 2-3 sentences long, personal, and insightful. Focus on positiv
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('OpenAI API error:', errorText);
+      console.log('OpenAI API error response:', errorText);
+      
+      // Check for specific error types
+      if (response.status === 401) {
+        console.log('API key authentication failed');
+        throw new Error('Invalid API key. Please check your OpenAI API key.');
+      } else if (response.status === 429) {
+        console.log('Rate limit exceeded');
+        throw new Error('Rate limit exceeded. Please try again in a moment.');
+      } else if (response.status === 400) {
+        console.log('Bad request to OpenAI API');
+        throw new Error('Invalid request to OpenAI API.');
+      }
+      
       throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI API response received');
+    console.log('OpenAI API response received successfully');
 
     // Parse the response
     const content = data.choices[0]?.message?.content;
     if (!content) {
+      console.log('No content in OpenAI response');
       throw new Error('No content in OpenAI response');
     }
 
-    console.log('Raw OpenAI response:', content);
+    console.log('Raw OpenAI response content:', content);
 
     // Try to parse the JSON response
     let palmReading: PalmReading;
     try {
-      // Clean the response in case there are markdown code blocks
-      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      // Clean the response in case there are markdown code blocks or extra whitespace
+      const cleanedContent = content
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .replace(/^\s+|\s+$/g, '')
+        .trim();
+      
+      console.log('Cleaned content for parsing:', cleanedContent);
       palmReading = JSON.parse(cleanedContent);
+      
+      // Validate the structure
+      if (!palmReading.lifeLine || !palmReading.headLine || !palmReading.heartLine || 
+          !palmReading.handShape || !palmReading.overall) {
+        console.log('Invalid palm reading structure received');
+        throw new Error('Invalid palm reading structure');
+      }
+      
+      console.log('Successfully parsed palm reading from OpenAI');
+      
     } catch (parseError) {
       console.log('Error parsing OpenAI response as JSON:', parseError);
       console.log('Content that failed to parse:', content);
       
       // Fallback to a default reading if parsing fails
+      console.log('Falling back to default reading due to parse error');
       palmReading = getDefaultReading();
     }
 
@@ -148,8 +190,10 @@ Make each section 2-3 sentences long, personal, and insightful. Focus on positiv
 
   } catch (error) {
     console.log('Error in analyzePalmImage:', error);
+    console.log('Error details:', error instanceof Error ? error.message : 'Unknown error');
     
     // Return a default reading if the API call fails
+    console.log('Returning default reading due to error');
     return getDefaultReading();
   }
 }
@@ -186,5 +230,11 @@ function getDefaultReading(): PalmReading {
 }
 
 export function validateApiKey(): boolean {
-  return OPENAI_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE' && OPENAI_API_KEY.length > 0;
+  const isValid = OPENAI_API_KEY && 
+                  OPENAI_API_KEY !== 'YOUR_OPENAI_API_KEY_HERE' && 
+                  OPENAI_API_KEY.length > 20 &&
+                  OPENAI_API_KEY.startsWith('sk-');
+  
+  console.log('API key validation result:', isValid);
+  return isValid;
 }
