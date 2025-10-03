@@ -1,6 +1,7 @@
+
 {
   "expo": {
-    "name": "Natively",
+    "name": "Destiny Lines",
     "slug": "Natively",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +17,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.Natively",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Destiny Lines needs access to your camera to take a photo of your palm for the palm reading analysis. This helps provide you with personalized insights about your life lines."
       }
     },
     "android": {
@@ -25,7 +27,12 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.Natively"
+      "package": "com.anonymous.Natively",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/images/final_quest_240x240.png",
@@ -34,7 +41,13 @@
     "plugins": [
       "expo-font",
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Destiny Lines needs access to your camera to take a photo of your palm for the palm reading analysis."
+        }
+      ]
     ],
     "scheme": "natively",
     "experiments": {
