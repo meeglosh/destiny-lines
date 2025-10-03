@@ -1,5 +1,6 @@
 
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 
 interface PalmReading {
   lifeLine: {
@@ -33,23 +34,73 @@ interface PalmReading {
 const OPENAI_API_KEY = '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';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
+// Platform-specific function to convert image to base64
+async function convertImageToBase64(imageUri: string): Promise<string> {
+  console.log('🔄 Converting image to base64 for platform:', Platform.OS);
+  
+  if (Platform.OS === 'web') {
+    // Web implementation using fetch and FileReader
+    console.log('📱 Using web-compatible image conversion');
+    
+    try {
+      // Fetch the blob from the URI
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      // Convert blob to base64 using FileReader
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+          const base64 = result.split(',')[1];
+          console.log('✅ Web image conversion successful, base64 length:', base64.length);
+          resolve(base64);
+        };
+        reader.onerror = () => {
+          console.log('❌ Web image conversion failed');
+          reject(new Error('Failed to convert image to base64 on web'));
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.log('❌ Error in web image conversion:', error);
+      throw new Error('Failed to convert image to base64 on web');
+    }
+  } else {
+    // Native implementation using expo-file-system
+    console.log('📱 Using native image conversion');
+    
+    try {
+      const base64Image = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      console.log('✅ Native image conversion successful, base64 length:', base64Image.length);
+      return base64Image;
+    } catch (error) {
+      console.log('❌ Error in native image conversion:', error);
+      throw new Error('Failed to convert image to base64 on native platform');
+    }
+  }
+}
+
 export async function analyzePalmImage(imageUri: string): Promise<PalmReading> {
-  console.log('Starting palm analysis for image:', imageUri);
+  console.log('🔮 Starting palm analysis for image:', imageUri);
   
   try {
     // Validate API key first
     if (!validateApiKey()) {
-      console.log('Invalid API key, using default reading');
+      console.log('❌ Invalid API key, using default reading');
       return getDefaultReading();
     }
 
-    // Convert image to base64
-    console.log('Converting image to base64...');
-    const base64Image = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    console.log('✅ API key validated successfully');
+
+    // Convert image to base64 using platform-specific method
+    console.log('📸 Converting image to base64...');
+    const base64Image = await convertImageToBase64(imageUri);
     
-    console.log('Image converted to base64, length:', base64Image.length);
+    console.log('✅ Image converted to base64, length:', base64Image.length);
 
     // Prepare the prompt for palm reading
     const prompt = `You are an expert palm reader with years of experience. Analyze this palm image and provide a detailed, personalized reading. Be mystical but positive, and make the reading feel personal and insightful.
@@ -86,7 +137,7 @@ IMPORTANT: Respond with ONLY a valid JSON object in this exact format (no markdo
 
 Make each section 2-3 sentences long, personal, and insightful. Focus on positive traits and potential. Analyze the actual palm lines, hand shape, and features visible in the image.`;
 
-    console.log('Making API call to OpenAI...');
+    console.log('🚀 Making API call to OpenAI...');
 
     // Make API call to OpenAI
     const response = await fetch(OPENAI_API_URL, {
@@ -121,21 +172,21 @@ Make each section 2-3 sentences long, personal, and insightful. Focus on positiv
       }),
     });
 
-    console.log('OpenAI API response status:', response.status);
+    console.log('📡 OpenAI API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('OpenAI API error response:', errorText);
+      console.log('❌ OpenAI API error response:', errorText);
       
       // Check for specific error types
       if (response.status === 401) {
-        console.log('API key authentication failed');
+        console.log('🔑 API key authentication failed');
         throw new Error('Invalid API key. Please check your OpenAI API key.');
       } else if (response.status === 429) {
-        console.log('Rate limit exceeded');
+        console.log('⏰ Rate limit exceeded');
         throw new Error('Rate limit exceeded. Please try again in a moment.');
       } else if (response.status === 400) {
-        console.log('Bad request to OpenAI API');
+        console.log('❌ Bad request to OpenAI API');
         throw new Error('Invalid request to OpenAI API.');
       }
       
@@ -143,16 +194,16 @@ Make each section 2-3 sentences long, personal, and insightful. Focus on positiv
     }
 
     const data = await response.json();
-    console.log('OpenAI API response received successfully');
+    console.log('✅ OpenAI API response received successfully');
 
     // Parse the response
     const content = data.choices[0]?.message?.content;
     if (!content) {
-      console.log('No content in OpenAI response');
+      console.log('❌ No content in OpenAI response');
       throw new Error('No content in OpenAI response');
     }
 
-    console.log('Raw OpenAI response content:', content);
+    console.log('📄 Raw OpenAI response content:', content);
 
     // Try to parse the JSON response
     let palmReading: PalmReading;
@@ -164,42 +215,42 @@ Make each section 2-3 sentences long, personal, and insightful. Focus on positiv
         .replace(/^\s+|\s+$/g, '')
         .trim();
       
-      console.log('Cleaned content for parsing:', cleanedContent);
+      console.log('🧹 Cleaned content for parsing:', cleanedContent);
       palmReading = JSON.parse(cleanedContent);
       
       // Validate the structure
       if (!palmReading.lifeLine || !palmReading.headLine || !palmReading.heartLine || 
           !palmReading.handShape || !palmReading.overall) {
-        console.log('Invalid palm reading structure received');
+        console.log('❌ Invalid palm reading structure received');
         throw new Error('Invalid palm reading structure');
       }
       
-      console.log('Successfully parsed palm reading from OpenAI');
+      console.log('✅ Successfully parsed palm reading from OpenAI');
       
     } catch (parseError) {
-      console.log('Error parsing OpenAI response as JSON:', parseError);
-      console.log('Content that failed to parse:', content);
+      console.log('❌ Error parsing OpenAI response as JSON:', parseError);
+      console.log('📄 Content that failed to parse:', content);
       
       // Fallback to a default reading if parsing fails
-      console.log('Falling back to default reading due to parse error');
+      console.log('🔄 Falling back to default reading due to parse error');
       palmReading = getDefaultReading();
     }
 
-    console.log('Palm reading analysis complete');
+    console.log('🎉 Palm reading analysis complete');
     return palmReading;
 
   } catch (error) {
-    console.log('Error in analyzePalmImage:', error);
-    console.log('Error details:', error instanceof Error ? error.message : 'Unknown error');
+    console.log('💥 Error in analyzePalmImage:', error);
+    console.log('📊 Error details:', error instanceof Error ? error.message : 'Unknown error');
     
     // Return a default reading if the API call fails
-    console.log('Returning default reading due to error');
+    console.log('🔄 Returning default reading due to error');
     return getDefaultReading();
   }
 }
 
 function getDefaultReading(): PalmReading {
-  console.log('Using default palm reading');
+  console.log('📖 Using default palm reading');
   return {
     lifeLine: {
       icon: '🌿',
@@ -235,6 +286,9 @@ export function validateApiKey(): boolean {
                   OPENAI_API_KEY.length > 20 &&
                   OPENAI_API_KEY.startsWith('sk-');
   
-  console.log('API key validation result:', isValid);
+  console.log('🔑 API key validation result:', isValid);
+  console.log('🔑 API key length:', OPENAI_API_KEY ? OPENAI_API_KEY.length : 0);
+  console.log('🔑 API key starts with sk-:', OPENAI_API_KEY ? OPENAI_API_KEY.startsWith('sk-') : false);
+  
   return isValid;
 }
