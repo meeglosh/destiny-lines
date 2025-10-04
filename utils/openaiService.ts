@@ -30,8 +30,8 @@ interface PalmReading {
   };
 }
 
-// You'll need to set your OpenAI API key here
-const OPENAI_API_KEY = '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';
+// Get API key from environment variable
+const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Platform-specific function to convert image to base64

@@ -12,55 +12,59 @@ import { analyzePalmImage, validateApiKey } from '@/utils/openaiService';
 export default function CameraScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  console.log('CameraScreen rendered');
+  console.log('📱 CameraScreen rendered');
 
   const requestPermissions = async () => {
-    console.log('Requesting camera permissions');
+    console.log('🔐 Requesting camera permissions');
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Camera permission is required to take photos.');
+      Alert.alert(
+        'Camera Permission Required', 
+        'To capture your palm photo for analysis, we need access to your camera. Please allow camera access in your device settings.',
+        [{ text: 'OK' }]
+      );
       return false;
     }
     return true;
   };
 
   const takePicture = async () => {
-    console.log('Taking picture');
+    console.log('📷 Taking picture');
     const hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
     try {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false, // Removed the 1:1 aspect ratio restriction
+        allowsEditing: false,
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
-        console.log('Image captured:', result.assets[0].uri);
+        console.log('✅ Image captured:', result.assets[0].uri);
         setImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.log('Error taking picture:', error);
+      console.log('❌ Error taking picture:', error);
       Alert.alert('Error', 'Failed to take picture. Please try again.');
     }
   };
 
   const selectFromGallery = async () => {
-    console.log('Selecting from gallery');
+    console.log('🖼️ Selecting from gallery');
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false, // Removed the 1:1 aspect ratio restriction
+        allowsEditing: false,
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets[0]) {
-        console.log('Image selected:', result.assets[0].uri);
+        console.log('✅ Image selected:', result.assets[0].uri);
         setImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.log('Error selecting image:', error);
+      console.log('❌ Error selecting image:', error);
       Alert.alert('Error', 'Failed to select image. Please try again.');
     }
   };
@@ -71,24 +75,37 @@ export default function CameraScreen() {
       return;
     }
 
+    console.log('🔮 Starting palm analysis process...');
+    
     // Check if API key is configured
     if (!validateApiKey()) {
+      console.log('🚀 API key validated, calling OpenAI...');
       Alert.alert(
-        'API Key Required',
-        'Please configure your OpenAI API key in utils/openaiService.ts to enable palm reading functionality.',
-        [{ text: 'OK' }]
+        'OpenAI API Key Required',
+        'To get personalized palm readings, you need to configure your OpenAI API key. For now, you\'ll receive a sample reading.',
+        [
+          { 
+            text: 'Continue with Sample', 
+            onPress: () => proceedWithAnalysis()
+          },
+          { text: 'Cancel', style: 'cancel' }
+        ]
       );
       return;
     }
 
-    console.log('Starting palm analysis for image:', image);
+    await proceedWithAnalysis();
+  };
+
+  const proceedWithAnalysis = async () => {
+    console.log('🚀 API key validated, calling OpenAI...');
     setIsAnalyzing(true);
 
     try {
       // Call OpenAI API to analyze the palm
-      const palmReading = await analyzePalmImage(image);
+      const palmReading = await analyzePalmImage(image!);
       
-      console.log('Palm analysis complete, navigating to results');
+      console.log('✅ Palm analysis complete, navigating to results');
       
       // Navigate to results with the reading data
       router.push({
@@ -99,7 +116,7 @@ export default function CameraScreen() {
         }
       });
     } catch (error) {
-      console.log('Error analyzing palm:', error);
+      console.log('❌ Error analyzing palm:', error);
       Alert.alert(
         'Analysis Failed', 
         'Unable to analyze your palm at the moment. Please check your internet connection and try again.',
@@ -111,7 +128,7 @@ export default function CameraScreen() {
   };
 
   const retakePicture = () => {
-    console.log('Retaking picture');
+    console.log('🔄 Retaking picture');
     setImage(null);
   };
 

@@ -1,3 +1,4 @@
+
 node_modules/
 
 .git/
@@ -23,6 +24,7 @@ yarn-error.*
 .DS_Store
 *.pem
 
+.env
 .env*.local
 
 *.tsbuildinfo
