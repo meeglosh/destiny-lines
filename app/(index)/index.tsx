@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, Platform, Image } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { commonStyles, colors, textStyles, buttonStyles } from '@/styles/commonStyles';
 import { Button } from '@/components/button';
@@ -53,7 +53,11 @@ export default function HomeScreen() {
           {/* Main Action Section */}
           <View style={styles.actionSection}>
             <View style={styles.palmIcon}>
-              <Text style={styles.palmEmoji}>🔮</Text>
+              <Image 
+                source={require('@/assets/images/6e6eb815-7e35-4b9e-934d-4d9d6f43131f.png')} 
+                style={styles.crystalBallImage}
+                resizeMode="contain"
+              />
             </View>
             
             <Button
@@ -181,6 +185,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 15,
     elevation: 5,
+  },
+  crystalBallImage: {
+    width: 110,
+    height: 110,
   },
   palmEmoji: {
     fontSize: 60,
