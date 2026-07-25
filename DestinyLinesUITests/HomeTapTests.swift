@@ -106,3 +106,37 @@ final class ArtHotspotTests: XCTestCase {
         XCTAssertTrue(app.buttons["Close"].isHittable, "Paywall close button is not hittable")
     }
 }
+
+/// The sound toggle replaces the baked compass medallion on Home.
+final class MuteButtonTests: XCTestCase {
+
+    func testMuteButtonTogglesAndPersists() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["DEBUG_ROUTE"] = "home"
+        app.launch()
+        RunLoop.current.run(until: Date().addingTimeInterval(3))
+
+        // Starts unmuted on a fresh install.
+        let soundOn = app.buttons["Sound on"]
+        XCTAssertTrue(soundOn.waitForExistence(timeout: 5), "Sound toggle missing from Home")
+        XCTAssertTrue(soundOn.isHittable, "Sound toggle is not hittable")
+
+        soundOn.tap()
+        XCTAssertTrue(
+            app.buttons["Sound off"].waitForExistence(timeout: 3),
+            "Tapping the toggle did not switch to the muted state"
+        )
+
+        // The mute choice survives a relaunch.
+        app.terminate()
+        app.launch()
+        RunLoop.current.run(until: Date().addingTimeInterval(3))
+        XCTAssertTrue(
+            app.buttons["Sound off"].waitForExistence(timeout: 5),
+            "Mute preference did not persist across launches"
+        )
+
+        // Restore for later runs.
+        app.buttons["Sound off"].tap()
+    }
+}

@@ -5,9 +5,16 @@ import SwiftUI
 struct HomeView: View {
     @Environment(AppState.self) private var appState
     @Environment(ReadingStore.self) private var readingStore
+    @Environment(AudioPlayer.self) private var audio
 
     var body: some View {
         ArtScreen(image: "bg_home") { art in
+            // Sound toggle, drawn over the baked compass medallion top-left.
+            MuteButton(isMuted: audio.isMuted) {
+                audio.toggleMute()
+            }
+            .artFrame(art.rect(0.052, 0.048, 0.115, 0.056))
+
             // NEW READING marquee plate
             ArtHotspot(
                 rect: art.rect(0.12, 0.560, 0.76, 0.098),
