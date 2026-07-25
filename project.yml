@@ -1,0 +1,62 @@
+name: DestinyLines
+options:
+  bundleIdPrefix: com.kenzoragames
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.0.0
+
+targets:
+  DestinyLines:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: DestinyLines
+    resources:
+      - path: DestinyLines/Resources
+    dependencies:
+      - package: Supabase
+        product: Supabase
+    info:
+      path: DestinyLines/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSCameraUsageDescription: "Destiny Lines needs your camera to photograph your palm for a reading."
+        NSPhotoLibraryUsageDescription: "Choose an existing photo of your palm from your library."
+        NSPhotoLibraryAddUsageDescription: "Save your reading's share card to your photo library."
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines
+        PRODUCT_NAME: DestinyLines
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_STYLE: Automatic
+    scheme:
+      testTargets:
+        - DestinyLinesTests
+      gatherCoverageData: true
+
+  DestinyLinesTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: DestinyLinesTests
+    dependencies:
+      - target: DestinyLines
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines.tests
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
