@@ -26,8 +26,8 @@ struct AnalyzingView: View {
                         endRadius: art.frame.width * 0.42
                     )
                 )
-                .frame(width: art.frame.width * 0.9, height: art.frame.width * 0.9)
-                .position(art.point(0.5, 0.47))
+                .artFrame(art.rect(0.05, 0.47 - 0.45 * (art.frame.width / art.frame.height), 0.90,
+                                   0.90 * (art.frame.width / art.frame.height)))
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
 
@@ -35,7 +35,8 @@ struct AnalyzingView: View {
             Text("We delete your photo as soon as this finishes.")
                 .font(Typography.fine)
                 .foregroundStyle(Theme.goldLight.opacity(0.75))
-                .position(art.point(0.5, 0.955))
+                .artFrame(art.rect(0.10, 0.938, 0.80, 0.034))
+                .allowsHitTesting(false)
         }
         .task { await analyze() }
         .onAppear {

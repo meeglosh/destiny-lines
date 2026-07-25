@@ -10,7 +10,7 @@ struct SplashView: View {
         ArtScreen(image: "bg_splash") { art in
             ProgressView()
                 .tint(Theme.gold)
-                .position(art.point(0.5, 0.945))
+                .artFrame(art.rect(0.35, 0.925, 0.30, 0.040))
                 .accessibilityLabel("Seeing possibilities")
         }
         .task { await start() }

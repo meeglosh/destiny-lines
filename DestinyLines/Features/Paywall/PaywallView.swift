@@ -105,8 +105,7 @@ struct PaywallView: View {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(Theme.goldLight, lineWidth: 2.5)
                 .shadow(color: Theme.glow.opacity(0.7), radius: 7)
-                .frame(width: rect.width, height: rect.height)
-                .position(x: rect.midX, y: rect.midY)
+                .artFrame(rect)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }

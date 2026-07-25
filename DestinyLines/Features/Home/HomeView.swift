@@ -56,7 +56,8 @@ struct HomeView: View {
                     .padding(6)
                     .background(Circle().fill(Color(red: 0.72, green: 0.20, blue: 0.10)))
                     .overlay(Circle().strokeBorder(Theme.gold.opacity(0.7), lineWidth: 1))
-                    .position(art.point(0.955, 0.052))
+                    .artFrame(art.rect(0.905, 0.032, 0.10, 0.040))
+                    .allowsHitTesting(false)
                     .accessibilityLabel("\(readingStore.readings.count) saved readings")
             }
         }

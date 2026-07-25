@@ -54,6 +54,19 @@ struct ArtGeometry {
     }
 }
 
+extension View {
+    /// Place this view at a rect in art coordinates.
+    ///
+    /// Uses `.offset`, NOT `.position`: `.position` expands the view to fill its parent,
+    /// so stacked positioned views each cover the whole screen and swallow every touch
+    /// except the topmost one. `.offset` keeps the view its own size, so siblings stay
+    /// independently tappable.
+    func artFrame(_ rect: CGRect, alignment: Alignment = .center) -> some View {
+        frame(width: rect.width, height: rect.height, alignment: alignment)
+            .offset(x: rect.minX, y: rect.minY)
+    }
+}
+
 /// Invisible tap target over a baked-in control in the art.
 struct ArtHotspot: View {
     let rect: CGRect
@@ -66,11 +79,12 @@ struct ArtHotspot: View {
             Rectangle()
                 .fill(debug ? Color.red.opacity(0.3) : Color.clear)
                 .overlay(debug ? Rectangle().stroke(.red, lineWidth: 1) : nil)
+                .contentShape(Rectangle())
         }
         .buttonStyle(ArtPressStyle())
-        .frame(width: rect.width, height: rect.height)
-        .position(x: rect.midX, y: rect.midY)
+        .artFrame(rect)
         .accessibilityLabel(label)
+        .accessibilityAddTraits(.isButton)
     }
 }
 

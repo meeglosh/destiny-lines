@@ -54,8 +54,8 @@ struct ShareReadingView: View {
                 .foregroundStyle(Theme.goldLight)
                 .lineLimit(2)
                 .minimumScaleFactor(0.7)
-                .frame(width: art.frame.width * 0.50, alignment: .leading)
-                .position(art.point(0.578, row.y))
+                .artFrame(art.rect(0.328, row.y - row.height / 2, 0.50, row.height), alignment: .leading)
+                .allowsHitTesting(false)
         }
     }
 
@@ -69,8 +69,7 @@ struct ShareReadingView: View {
                 Rectangle().fill(Color.clear)
             }
             .buttonStyle(ArtPressStyle())
-            .frame(width: art.frame.width * 0.85, height: art.frame.height * 0.070)
-            .position(art.point(0.5, 0.856))
+            .artFrame(art.rect(0.075, 0.821, 0.85, 0.070))
             .accessibilityLabel("Share Now")
         }
     }

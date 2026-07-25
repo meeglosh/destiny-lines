@@ -27,8 +27,7 @@ struct HistoryView: View {
                 }
                 .padding(.vertical, 4)
             }
-            .frame(width: listRect.width, height: listRect.height)
-            .position(x: listRect.midX, y: listRect.midY)
+            .artFrame(listRect)
 
             // Baked NEW READING plate
             ArtHotspot(rect: art.rect(0.07, 0.848, 0.86, 0.075), label: "New Reading",

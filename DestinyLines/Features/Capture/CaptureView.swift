@@ -36,8 +36,8 @@ struct CaptureView: View {
                 .font(Typography.fine)
                 .foregroundStyle(Theme.goldLight.opacity(0.8))
                 .multilineTextAlignment(.center)
-                .frame(width: art.frame.width * 0.8)
-                .position(art.point(0.5, 0.895))
+                .artFrame(art.rect(0.10, 0.875, 0.80, 0.040))
+                .allowsHitTesting(false)
 
             if submission.state == .checking || submission.state == .uploading {
                 WorkingVeil(text: submission.state == .checking

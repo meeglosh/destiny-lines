@@ -74,6 +74,7 @@ struct RootView: View {
         )
 
         switch route {
+        case "home": break // phase is already .ready; Home is the stack root
         case "capture": appState.navigate(.capture)
         case "align": appState.navigate(.align(source: .camera))
         case "analyzing": appState.navigate(.analyzing(objectKey: "debug"))

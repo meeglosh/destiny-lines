@@ -32,13 +32,11 @@ struct AlignHandView: View {
                 // Live camera behind the art's transparent viewfinder.
                 if camera.isRunning, let session = camera.session {
                     CameraPreview(session: session)
-                        .frame(width: holeRect.width, height: holeRect.height)
-                        .position(x: holeRect.midX, y: holeRect.midY)
+                        .artFrame(holeRect)
                 } else {
                     Rectangle()
                         .fill(Color.black)
-                        .frame(width: holeRect.width, height: holeRect.height)
-                        .position(x: holeRect.midX, y: holeRect.midY)
+                        .artFrame(holeRect)
                 }
 
                 Image("bg_align")
@@ -52,7 +50,7 @@ struct AlignHandView: View {
                         .font(Typography.caption)
                         .foregroundStyle(Theme.goldLight)
                         .multilineTextAlignment(.center)
-                        .position(x: holeRect.midX, y: holeRect.midY)
+                        .artFrame(holeRect)
                 }
 
                 ArtHotspot(rect: art.rect(0.02, 0.02, 0.14, 0.05), label: "Back",

@@ -86,8 +86,7 @@ struct ReadingView: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 12)
             }
-            .frame(width: art.frame.width * 0.94, height: art.frame.height * 0.62)
-            .position(art.point(0.5, 0.525))
+            .artFrame(art.rect(0.03, 0.215, 0.94, 0.62))
 
             disclaimer(art)
         }
@@ -198,13 +197,10 @@ struct ReadingView: View {
         if tab != .overview {
             RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(Theme.gold, lineWidth: 1.6)
-                .frame(
-                    width: art.frame.width * (tab == .inDepth ? 0.28 : 0.29),
-                    height: art.frame.height * 0.052
-                )
-                .position(
-                    x: art.frame.minX + art.frame.width * (tab == .inDepth ? 0.518 : 0.810),
-                    y: art.frame.minY + art.frame.height * 0.189
+                .artFrame(
+                    tab == .inDepth
+                        ? art.rect(0.378, 0.163, 0.28, 0.052)
+                        : art.rect(0.665, 0.163, 0.29, 0.052)
                 )
                 .allowsHitTesting(false)
         }
@@ -215,9 +211,9 @@ struct ReadingView: View {
         Text("For entertainment purposes only.")
             .font(Typography.fine)
             .foregroundStyle(Theme.gold.opacity(0.7))
-            .frame(width: art.frame.width, height: art.frame.height * 0.022)
+            .artFrame(art.rect(0, 0.978, 1, 0.022))
             .background(Theme.background)
-            .position(art.point(0.5, 0.989))
+            .allowsHitTesting(false)
     }
 }
 
