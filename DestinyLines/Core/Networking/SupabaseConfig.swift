@@ -1,14 +1,13 @@
 import Foundation
 
-/// Supabase project coordinates. These are shippable by design: the anon key is public
-/// and Row Level Security enforces access (CLAUDE.md §1.1). Secrets never appear here.
+/// Supabase project coordinates. These are shippable by design: the publishable key is
+/// public and Row Level Security enforces access (CLAUDE.md §1.1). Secrets never appear here.
 enum SupabaseConfig {
-    // TODO(owner): real values expected in-session; placeholders keep the app bootable.
-    static let url = URL(string: "https://YOUR-PROJECT-REF.supabase.co")!
-    static let anonKey = "YOUR-ANON-KEY"
+    static let url = URL(string: "https://lbcenouizvrsroxpfqxw.supabase.co")!
+    static let anonKey = "sb_publishable_4JKmmydYrtm4vKiSW_avJQ_wdDHbJFd"
 
-    /// True once the constants above have been replaced with real values.
+    /// True once real project values are present.
     static var isConfigured: Bool {
-        url.host()?.hasPrefix("YOUR-PROJECT-REF") == false && anonKey != "YOUR-ANON-KEY"
+        anonKey.hasPrefix("sb_publishable_") || anonKey.hasPrefix("eyJ")
     }
 }
