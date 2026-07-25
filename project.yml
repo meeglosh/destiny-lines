@@ -52,10 +52,26 @@ targets:
     scheme:
       testTargets:
         - DestinyLinesTests
+        - DestinyLinesUITests
       gatherCoverageData: true
       # Local StoreKit config so purchases are testable in the simulator. Switching to the
       # real App Store means removing this line only — no code changes (CLAUDE.md §7.8).
       storeKitConfiguration: DestinyLines/Resources/Products.storekit
+
+  DestinyLinesUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: DestinyLinesUITests
+    dependencies:
+      - target: DestinyLines
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines.uitests
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: DestinyLines
 
   DestinyLinesTests:
     type: bundle.unit-test

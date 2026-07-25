@@ -1,15 +1,82 @@
 {
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
   "identifier" : "4F2A9C61-6D3B-4E58-9A70-2C1E8B5D4A03",
   "nonRenewingSubscriptions" : [
   ],
   "products" : [
   ],
   "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
   },
   "subscriptionGroups" : [
     {
-      "id" : "20250725",
+      "id" : "21467831",
       "localizations" : [
+        {
+          "description" : "Unlimited in-depth palm readings.",
+          "displayName" : "Destiny Lines Premium",
+          "locale" : "en_US"
+        }
       ],
       "name" : "Destiny Lines Premium",
       "subscriptions" : [
@@ -18,12 +85,37 @@
           ],
           "codeOffers" : [
           ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6748210001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlimited in-depth palm readings, billed monthly.",
+              "displayName" : "Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.destinylines.premium.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Premium Monthly",
+          "subscriptionGroupID" : "21467831",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+          ]
+        },
+        {
+          "adHocOffers" : [
+          ],
+          "codeOffers" : [
+          ],
           "displayPrice" : "39.99",
           "familyShareable" : false,
           "groupNumber" : 1,
-          "internalID" : "20250702",
+          "internalID" : "6748210002",
           "introductoryOffer" : {
-            "internalID" : "20250703",
+            "internalID" : "6748210003",
             "paymentMode" : "free",
             "subscriptionPeriod" : "P3D"
           },
@@ -37,37 +129,16 @@
           "productID" : "com.destinylines.premium.yearly",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Premium Yearly",
-          "subscriptionGroupID" : "20250725",
-          "type" : "RecurringSubscription"
-        },
-        {
-          "adHocOffers" : [
-          ],
-          "codeOffers" : [
-          ],
-          "displayPrice" : "4.99",
-          "familyShareable" : false,
-          "groupNumber" : 2,
-          "internalID" : "20250701",
-          "introductoryOffer" : null,
-          "localizations" : [
-            {
-              "description" : "Unlimited in-depth palm readings, billed monthly.",
-              "displayName" : "Monthly",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "com.destinylines.premium.monthly",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Premium Monthly",
-          "subscriptionGroupID" : "20250725",
-          "type" : "RecurringSubscription"
+          "subscriptionGroupID" : "21467831",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+          ]
         }
       ]
     }
   ],
   "version" : {
-    "major" : 3,
+    "major" : 4,
     "minor" : 0
   }
 }

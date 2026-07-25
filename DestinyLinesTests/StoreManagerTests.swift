@@ -7,17 +7,15 @@ import Testing
 /// configuration, so the flow is verified without App Store Connect or a paid account.
 /// Serialized: each test drives one global StoreKit test session, so they cannot overlap.
 ///
-/// Disabled because StoreKit testing does not function in this environment when driven from the
-/// `xcodebuild` CLI: every SKTestSession operation fails with `SKInternalErrorDomain Code=3`
-/// ("Error saving configuration file" / "Error clearing overrides") and `Product.products(for:)`
-/// returns zero products. Reproduced on both the iOS 26.4 and 26.5 simulator runtimes, on a
-/// freshly erased device, with the config supplied via SKTestSession and via the scheme's
-/// StoreKit configuration on both the Launch and Test actions. Products.storekit itself parses
-/// and contains both products, so this is an environment/toolchain issue, not a config error.
-///
-/// Re-enable and run these from the Xcode GUI to verify the purchase flow.
+/// Disabled: local StoreKit testing is broken on this development machine's toolchain
+/// (Xcode 26.6 + iOS 26.4/26.5 simulators). Proven by control experiment — a minimal
+/// from-scratch project with its own .storekit config also loads zero products, from
+/// both `xcodebuild` and the Xcode GUI, and SKTestSession operations fail with
+/// SKInternalErrorDomain Code=3. Re-enable on a machine where StoreKit testing works;
+/// the paywall purchase path is additionally covered by DestinyLinesUITests, which
+/// self-skips under the same broken environment.
 @MainActor
-@Suite(.serialized, .disabled("StoreKit test sessions fail with SKInternalErrorDomain Code=3 under xcodebuild; run from Xcode"))
+@Suite(.serialized, .disabled("Local StoreKit testing is broken on this toolchain (see comment); re-enable on a working environment"))
 struct StoreManagerTests {
 
     /// Products.storekit ships read-only inside the code-signed app bundle, but SKTestSession
