@@ -3,24 +3,20 @@ import SwiftUI
 @main
 struct DestinyLinesApp: App {
     @State private var appState = AppState()
+    @State private var store = StoreManager()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            RootPlaceholderView()
+            PaywallView()
                 .environment(appState)
+                .environment(store)
         }
-    }
-}
-
-private struct RootPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("DESTINY LINES")
-                .font(.title.bold())
-            Text("Project scaffold — screens coming next")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        .onChange(of: scenePhase) { _, phase in
+            // Re-derive entitlement on every foreground (CLAUDE.md §7.8).
+            if phase == .active {
+                Task { await store.refreshEntitlement() }
+            }
         }
-        .padding()
     }
 }

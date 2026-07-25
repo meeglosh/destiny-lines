@@ -4,6 +4,8 @@ options:
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
+  # XcodeGen can't put the StoreKit config on the scheme's TestAction; see the script.
+  postGenCommand: ./Scripts/patch-scheme-storekit.sh
 
 packages:
   Supabase:
@@ -46,6 +48,9 @@ targets:
       testTargets:
         - DestinyLinesTests
       gatherCoverageData: true
+      # Local StoreKit config so purchases are testable in the simulator. Switching to the
+      # real App Store means removing this line only — no code changes (CLAUDE.md §7.8).
+      storeKitConfiguration: DestinyLines/Resources/Products.storekit
 
   DestinyLinesTests:
     type: bundle.unit-test
@@ -55,6 +60,7 @@ targets:
       - path: DestinyLinesTests
     dependencies:
       - target: DestinyLines
+      - sdk: StoreKitTest.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines.tests
