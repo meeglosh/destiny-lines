@@ -5,29 +5,52 @@ struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(ReadingStore.self) private var readingStore
 
+    /// Black curtain used to cross the splash → Home boundary, so the swap is a fade
+    /// through black rather than an abrupt cut.
+    @State private var curtain: Double = 0
+
     var body: some View {
         @Bindable var appState = appState
 
-        Group {
-            switch appState.phase {
-            case .launching:
-                SplashView {
-                    appState.phase = .ready
+        ZStack {
+            Group {
+                switch appState.phase {
+                case .launching:
+                    SplashView { beginTransitionToHome() }
+                case .ready, .offline:
+                    NavigationStack(path: $appState.path) {
+                        HomeView()
+                            .navigationDestination(for: AppState.Route.self) { route in
+                                destination(for: route)
+                            }
+                    }
+                    .tint(Theme.gold)
                 }
-            case .ready, .offline:
-                NavigationStack(path: $appState.path) {
-                    HomeView()
-                        .navigationDestination(for: AppState.Route.self) { route in
-                            destination(for: route)
-                        }
-                }
-                .tint(Theme.gold)
             }
+
+            Color.black
+                .ignoresSafeArea()
+                .opacity(curtain)
+                .allowsHitTesting(false)
         }
         .fullScreenCover(isPresented: $appState.showPaywall) {
             PaywallView()
         }
         .task { applyDebugRoute() }
+    }
+
+    /// Fade to black, swap the splash for Home behind the curtain, then fade back in.
+    private func beginTransitionToHome() {
+        Task { @MainActor in
+            withAnimation(.easeIn(duration: 0.45)) { curtain = 1 }
+            try? await Task.sleep(for: .milliseconds(460))
+
+            appState.phase = .ready
+            // One beat on black so Home is composited before the curtain lifts.
+            try? await Task.sleep(for: .milliseconds(80))
+
+            withAnimation(.easeOut(duration: 0.55)) { curtain = 0 }
+        }
     }
 
     /// Screenshot calibration: DEBUG_ROUTE jumps straight to a screen, seeding a

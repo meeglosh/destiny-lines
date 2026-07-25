@@ -19,16 +19,15 @@ struct AlignHandView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let full = CGRect(
-                x: -proxy.safeAreaInsets.leading,
-                y: -proxy.safeAreaInsets.top,
-                width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
-                height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
-            )
-            let art = ArtGeometry(frame: full)
+            let container = ArtLayout.container(proxy)
+            let art = ArtGeometry(frame: ArtLayout.fittedFrame(for: "bg_align", in: container))
             let holeRect = art.rect(viewfinder.x, viewfinder.y, viewfinder.w, viewfinder.h)
 
             ZStack(alignment: .topLeading) {
+                Theme.background
+                    .frame(width: container.width, height: container.height)
+                    .offset(x: container.minX, y: container.minY)
+
                 // Live camera behind the art's transparent viewfinder.
                 if camera.isRunning, let session = camera.session {
                     CameraPreview(session: session)
@@ -41,8 +40,7 @@ struct AlignHandView: View {
 
                 Image("bg_align")
                     .resizable()
-                    .frame(width: full.width, height: full.height)
-                    .offset(x: full.minX, y: full.minY)
+                    .artFrame(art.frame)
                     .allowsHitTesting(false)
 
                 if camera.isDenied {

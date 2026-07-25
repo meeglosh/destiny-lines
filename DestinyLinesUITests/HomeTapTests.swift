@@ -16,13 +16,16 @@ final class ArtHotspotTests: XCTestCase {
         return app
     }
 
-    /// No hotspot may fill the whole screen — that is the signature of the `.position` bug.
+    /// Hotspots must be distinct (the `.position` bug made them all full-screen) AND
+    /// fully on screen (the aspect-fill bug pushed paywall controls off the right edge).
+    /// Run on several device sizes, this is the app's responsiveness guarantee.
     private func assertHotspotsAreDistinct(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
         let screen = app.windows.firstMatch.frame
         var seen: [CGRect] = []
         for button in app.buttons.allElementsBoundByIndex {
             let frame = button.frame
             guard frame.width > 0, frame.height > 0 else { continue }
+
             XCTAssertFalse(
                 frame.width >= screen.width && frame.height >= screen.height * 0.9,
                 "Hotspot '\(button.label)' fills the screen — .position regression",
@@ -31,6 +34,12 @@ final class ArtHotspotTests: XCTestCase {
             XCTAssertFalse(
                 seen.contains(frame),
                 "Hotspot '\(button.label)' shares a frame with another — .position regression",
+                file: file, line: line
+            )
+            // Allow a hair of rounding slop at the edges.
+            XCTAssertTrue(
+                screen.insetBy(dx: -1, dy: -1).contains(frame),
+                "Hotspot '\(button.label)' at \(frame) is cut off by the screen \(screen) — layout is not responsive",
                 file: file, line: line
             )
             seen.append(frame)

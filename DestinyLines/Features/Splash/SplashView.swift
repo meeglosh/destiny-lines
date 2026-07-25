@@ -16,8 +16,14 @@ struct SplashView: View {
         .task { await start() }
     }
 
+    /// Minimum time the splash stays up. Long enough to read the booth and hear the
+    /// music start, rather than flashing past.
+    private static let minimumDisplay: Duration = .seconds(3)
+
     private func start() async {
-        async let floor: Void = { try? await Task.sleep(for: .seconds(1.2)) }()
+        // Sign-in runs concurrently with the floor, so a slow network delays the splash
+        // but a fast one never shortens it.
+        async let floor: Void = { try? await Task.sleep(for: Self.minimumDisplay) }()
         async let session: Void = { try? await SupabaseService.shared.ensureSession() }()
         _ = await (floor, session)
         onFinished()
