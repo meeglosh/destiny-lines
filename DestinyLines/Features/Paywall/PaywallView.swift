@@ -1,10 +1,10 @@
 import StoreKit
 import SwiftUI
 
-/// DL-paywall.png: close button + wordmark, "UNLOCK YOUR FULL DESTINY", crystal-ball
-/// emblem with "YOUR FUTURE AWAITS" plinth, feature trio card, MONTHLY / YEARLY plan
-/// cards (yearly ringed with bulbs and badged BEST VALUE / SAVE 33%), green START FREE
-/// TRIAL CTA, and the trial / cancel / restore footer.
+/// DL-paywall.png used directly. All pricing visuals are baked (and match the §7.6
+/// products); this view adds hotspots, a selection ring, and the StoreKit flow.
+/// The comp's aspect is wider than the device, so it letterboxes vertically over
+/// the same near-black backdrop rather than stretching 20%.
 struct PaywallView: View {
     @Environment(StoreManager.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -18,38 +18,63 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                header
+        GeometryReader { proxy in
+            let screen = CGSize(
+                width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
+                height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+            )
+            // Fill the screen. The art is slightly wider-aspect; anchor to the LEFT edge
+            // so the close button stays whole and the crop falls on the right margin.
+            let artWidth = max(screen.width, screen.height * (847.0 / 1578.0))
+            let artHeight = artWidth * (1578.0 / 847.0)
+            let frame = CGRect(
+                x: -proxy.safeAreaInsets.leading,
+                y: -proxy.safeAreaInsets.top - (artHeight - screen.height) / 2,
+                width: artWidth,
+                height: artHeight
+            )
+            let art = ArtGeometry(frame: frame)
 
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("UNLOCK\nYOUR FULL\nDESTINY")
-                            .font(Typography.wordmark)
-                            .foregroundStyle(Theme.goldBevel)
-                            .lineSpacing(2)
-                        Sparkle()
-                        Text("Go deeper with unlimited, in-depth palm readings.")
-                            .font(Typography.bodyText)
-                            .foregroundStyle(Theme.goldLight)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            ZStack(alignment: .topLeading) {
+                Theme.background.ignoresSafeArea()
 
-                    crystalEmblem
+                Image("bg_paywall")
+                    .resizable()
+                    .frame(width: frame.width, height: frame.height)
+                    .offset(x: frame.minX, y: frame.minY)
+
+                ArtHotspot(rect: art.rect(0.015, 0.020, 0.13, 0.062), label: "Close",
+                           debug: ArtDebug.showHotspots) {
+                    dismiss()
                 }
-                .padding(.horizontal, 24)
 
-                featureTrio
+                // MONTHLY plan card
+                planHotspot(art.rect(0.045, 0.643, 0.425, 0.190), id: StoreProducts.monthly,
+                            label: "Monthly, $4.99 per month")
 
-                planCards
+                // YEARLY plan card (baked as highlighted BEST VALUE)
+                planHotspot(art.rect(0.505, 0.630, 0.455, 0.205), id: StoreProducts.yearly,
+                            label: "Yearly, $39.99 per year, best value, save 33 percent")
 
-                cta
+                // START FREE TRIAL plate
+                ArtHotspot(rect: art.rect(0.075, 0.856, 0.85, 0.075), label: ctaLabel,
+                           debug: ArtDebug.showHotspots) {
+                    Task { await buy() }
+                }
 
-                footer
+                // Restore Purchases (right third of the footer row)
+                ArtHotspot(rect: art.rect(0.63, 0.945, 0.35, 0.045), label: "Restore Purchases",
+                           debug: ArtDebug.showHotspots) {
+                    Task { await store.restore() }
+                }
+
+                if isPurchasing {
+                    WorkingVeil(text: "Consulting the stars...")
+                }
             }
-            .padding(.vertical, 12)
         }
-        .screenBackground()
+        .preferredColorScheme(.dark)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await store.loadProducts()
             await store.refreshEntitlement()
@@ -64,286 +89,36 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Sections
-
-    private var header: some View {
-        HStack {
-            Button {
-                dismiss()
-            } label: {
-                ZStack {
-                    Circle().strokeBorder(Theme.gold.opacity(0.8), lineWidth: 1.4)
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.gold)
-                }
-                .frame(width: 36, height: 36)
-            }
-            .accessibilityLabel("Close")
-
-            Spacer()
-
-            VStack(spacing: 0) {
-                Text("DESTINY")
-                    .font(.custom("Rye-Regular", size: 22, relativeTo: .title2))
-                Text("· LINES ·")
-                    .font(.custom("Rye-Regular", size: 16, relativeTo: .title3))
-            }
-            .foregroundStyle(Theme.goldBevel)
-
-            Spacer()
-
-            Color.clear.frame(width: 36, height: 36)
-        }
-        .padding(.horizontal, 20)
-    }
-
-    private var crystalEmblem: some View {
-        VStack(spacing: -6) {
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Theme.glow.opacity(0.9), Theme.crimson.opacity(0.7)],
-                            center: .init(x: 0.5, y: 0.4),
-                            startRadius: 6,
-                            endRadius: 70
-                        )
-                    )
-                Circle()
-                    .strokeBorder(Theme.goldBevel, lineWidth: 2)
-                Image(systemName: "hand.raised.fingers.spread.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(Theme.goldLight)
-                    .shadow(color: Theme.glow, radius: 12)
-            }
-            .frame(width: 130, height: 130)
-
-            OrnateCard(contentPadding: 8) {
-                Text("YOUR FUTURE\nAWAITS")
-                    .font(Typography.displaySmall)
-                    .foregroundStyle(Theme.goldLight)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-            }
-            .frame(width: 130)
-        }
-        .accessibilityHidden(true)
-    }
-
-    private var featureTrio: some View {
-        OrnateCard(contentPadding: 14) {
-            HStack(alignment: .top, spacing: 8) {
-                feature(icon: "infinity", label: "Unlimited\nreadings")
-                divider
-                feature(icon: "star.circle.fill", label: "In-depth\ninsights")
-                divider
-                feature(icon: "moon.stars.fill", label: "Save & share\nreadings")
-            }
-        }
-        .padding(.horizontal, 24)
-    }
-
-    private var divider: some View {
-        Rectangle()
-            .fill(Theme.goldDark.opacity(0.6))
-            .frame(width: 1, height: 74)
-    }
-
-    private func feature(icon: String, label: String) -> some View {
-        VStack(spacing: 8) {
-            IconMedallion(systemName: icon, diameter: 46)
-            Text(label)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.goldLight)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var planCards: some View {
-        HStack(spacing: 14) {
-            if store.isLoadingProducts {
-                ProgressView()
-                    .controlSize(.large)
-                    .tint(Theme.gold)
-                    .frame(maxWidth: .infinity, minHeight: 170)
-            } else if store.products.isEmpty {
-                OrnateCard {
-                    Text("Subscriptions are unavailable right now.")
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.goldLight)
-                }
-            } else {
-                if let monthly = store.monthly {
-                    planCard(monthly, name: "MONTHLY", per: "/month", highlight: false)
-                }
-                if let yearly = store.yearly {
-                    planCard(yearly, name: "YEARLY", per: "/year", highlight: true)
-                }
-            }
-        }
-        .padding(.horizontal, 24)
-    }
-
-    private func planCard(_ product: Product, name: String, per: String, highlight: Bool) -> some View {
-        let isSelected = product.id == selectedProductID
-
-        return Button {
-            selectedProductID = product.id
-        } label: {
-            VStack(spacing: 6) {
-                if highlight {
-                    Text("BEST VALUE")
-                        .font(Typography.fine)
-                        .kerning(1)
-                        .foregroundStyle(Theme.ink)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Theme.parchment))
-                }
-
-                Text(name)
-                    .font(Typography.heading)
-                    .foregroundStyle(Theme.goldLight)
-
-                Sparkle(size: 9)
-
-                Text(product.displayPrice)
-                    .font(.custom("Rye-Regular", size: 30, relativeTo: .title))
-                    .foregroundStyle(Theme.goldBevel)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-
-                Text(per)
-                    .font(Typography.caption)
-                    .foregroundStyle(Theme.goldLight.opacity(0.8))
-
-                if highlight {
-                    Text("SAVE 33%")
-                        .font(Typography.fine)
-                        .kerning(1)
-                        .foregroundStyle(Theme.goldLight)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(red: 0x1E / 255, green: 0x46 / 255, blue: 0x2B / 255))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .strokeBorder(Theme.goldDark, lineWidth: 1)
-                                )
-                        )
-                }
-            }
-            .padding(.vertical, 16)
-            .padding(.horizontal, 8)
-            .frame(maxWidth: .infinity, minHeight: 186)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(highlight ? AnyShapeStyle(Theme.crimsonFill) : AnyShapeStyle(Theme.panel))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(
-                                isSelected ? AnyShapeStyle(Theme.goldBevel) : AnyShapeStyle(Theme.goldDark.opacity(0.8)),
-                                lineWidth: isSelected ? 2.5 : 1.5
-                            )
-                    )
-            )
-            .overlay {
-                if highlight {
-                    bulbRing
-                }
-            }
-        }
-        .buttonStyle(PressableButtonStyle())
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-        .accessibilityLabel("\(name), \(product.displayPrice) \(per)\(highlight ? ", best value, save 33 percent" : "")")
-    }
-
-    private var bulbRing: some View {
-        GeometryReader { proxy in
-            let rect = CGRect(origin: .zero, size: proxy.size)
-            let points = MarqueeFrame<EmptyView>.bulbPositions(in: rect, cornerRadius: 12, spacing: 26)
-            ForEach(Array(points.enumerated()), id: \.offset) { _, point in
-                MarqueeBulb(size: 4)
-                    .position(point)
-            }
-        }
-        .allowsHitTesting(false)
-    }
-
-    private var cta: some View {
-        Button {
-            Task { await buy() }
-        } label: {
-            HStack(spacing: 12) {
-                Sparkle()
-                Group {
-                    if isPurchasing {
-                        ProgressView().tint(Theme.goldLight)
-                    } else {
-                        Text(ctaTitle)
-                            .font(Typography.cta)
-                    }
-                }
-                Sparkle()
-            }
-            .foregroundStyle(Theme.goldBevel)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0x2A / 255, green: 0x54 / 255, blue: 0x33 / 255),
-                                Color(red: 0x17 / 255, green: 0x33 / 255, blue: 0x1E / 255),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(Theme.goldBevel, lineWidth: 2.5)
-                    )
-                    .shadow(color: Theme.glow.opacity(0.3), radius: 12)
-            )
-        }
-        .buttonStyle(PressableButtonStyle())
-        .disabled(selectedProduct == nil || isPurchasing || store.isSubscribed)
-        .opacity(selectedProduct == nil ? 0.5 : 1)
-        .padding(.horizontal, 24)
-    }
-
-    private var ctaTitle: String {
-        guard let selectedProduct else { return "CONTINUE" }
+    private var ctaLabel: String {
+        guard let selectedProduct else { return "Subscribe" }
         let hasTrial = selectedProduct.subscription?.introductoryOffer?.paymentMode == .freeTrial
-        return hasTrial ? "START FREE TRIAL" : "SUBSCRIBE"
+        return hasTrial ? "Start free trial" : "Subscribe"
     }
 
-    private var footer: some View {
-        HStack(spacing: 14) {
-            Label("3-day free trial", systemImage: "star.fill")
-            Text("·")
-            Text("Cancel anytime")
-            Text("·")
-            Button {
-                Task { await store.restore() }
-            } label: {
-                Label("Restore Purchases", systemImage: "arrow.clockwise")
-            }
+    @ViewBuilder
+    private func planHotspot(_ rect: CGRect, id: String, label: String) -> some View {
+        ArtHotspot(rect: rect, label: label, debug: ArtDebug.showHotspots) {
+            selectedProductID = id
         }
-        .font(Typography.fine)
-        .foregroundStyle(Theme.goldLight.opacity(0.8))
-        .padding(.bottom, 18)
+
+        if selectedProductID == id {
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Theme.goldLight, lineWidth: 2.5)
+                .shadow(color: Theme.glow.opacity(0.7), radius: 7)
+                .frame(width: rect.width, height: rect.height)
+                .position(x: rect.midX, y: rect.midY)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: - Purchase
 
     private func buy() async {
-        guard let selectedProduct else { return }
+        guard let selectedProduct else {
+            errorMessage = "Subscriptions are unavailable right now. Check your connection and try again."
+            return
+        }
         isPurchasing = true
         defer { isPurchasing = false }
 

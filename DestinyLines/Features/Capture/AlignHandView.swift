@@ -2,8 +2,9 @@ import AVFoundation
 import SwiftUI
 import UIKit
 
-/// DL-align-hand-camera.png: live camera behind a glowing hand-outline guide with
-/// crosshairs and corner brackets, tips card, marquee-bulb edging, CONTINUE button.
+/// DL-align-hand-camera.png used directly. The viewfinder interior of the art has been
+/// made luminance-transparent, so the live camera feed shows through the dark glass
+/// while the baked glowing hand guide, crosshairs, and brackets stay on top.
 struct AlignHandView: View {
     let source: AppState.CaptureSource
 
@@ -13,99 +14,69 @@ struct AlignHandView: View {
     @State private var camera = CameraController()
     @State private var submission = PalmSubmission()
 
+    /// Viewfinder interior in art-normalized coordinates (matches the alpha hole).
+    private let viewfinder = (x: 0.140, y: 0.276, w: 0.722, h: 0.449)
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                BannerHeader(title: "ALIGN YOUR HAND")
-                    .padding(.horizontal, 52)
+        GeometryReader { proxy in
+            let full = CGRect(
+                x: -proxy.safeAreaInsets.leading,
+                y: -proxy.safeAreaInsets.top,
+                width: proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
+                height: proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+            )
+            let art = ArtGeometry(frame: full)
+            let holeRect = art.rect(viewfinder.x, viewfinder.y, viewfinder.w, viewfinder.h)
 
-                Text("Center your hand\nand adjust to fit the guide.")
-                    .font(Typography.bodyEmphasis)
-                    .foregroundStyle(Theme.goldLight)
-                    .multilineTextAlignment(.center)
-
-                viewfinder
-
-                OrnateCard(contentPadding: 12) {
-                    HStack(spacing: 12) {
-                        IconMedallion(systemName: "lightbulb.fill", diameter: 40)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("TIPS FOR BEST RESULTS")
-                                .font(Typography.displaySmall)
-                                .foregroundStyle(Theme.gold)
-                            Text("Use good lighting and a clear background.")
-                                .font(Typography.caption)
-                                .foregroundStyle(Theme.goldLight)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .padding(.horizontal, 24)
-
-                PrimaryCTAButton(title: "CONTINUE", showsBulbs: false, isEnabled: camera.isRunning) {
-                    Task { await captureAndSubmit() }
-                }
-                .padding(.horizontal, 24)
-            }
-            .padding(.vertical, 10)
-        }
-        .screenBackground()
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                BackButton { dismiss() }
-            }
-        }
-        .task { await camera.start() }
-        .onDisappear { camera.stop() }
-        .overlay {
-            if submission.state != .idle {
-                workingOverlay
-            }
-        }
-    }
-
-    private var viewfinder: some View {
-        MarqueeFrame(cornerRadius: 16, bulbSpacing: 34, bulbSize: 4.5) {
-            ZStack {
+            ZStack(alignment: .topLeading) {
+                // Live camera behind the art's transparent viewfinder.
                 if camera.isRunning, let session = camera.session {
                     CameraPreview(session: session)
+                        .frame(width: holeRect.width, height: holeRect.height)
+                        .position(x: holeRect.midX, y: holeRect.midY)
                 } else {
-                    Rectangle().fill(Color.black.opacity(0.6))
-                    VStack(spacing: 10) {
-                        Image(systemName: camera.isDenied ? "video.slash.fill" : "video.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(Theme.gold.opacity(0.6))
-                        Text(camera.isDenied
-                             ? "Camera access is off. Enable it in Settings to take a photo."
-                             : "Preparing the camera...")
-                            .font(Typography.caption)
-                            .foregroundStyle(Theme.goldLight.opacity(0.9))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 30)
-                    }
+                    Rectangle()
+                        .fill(Color.black)
+                        .frame(width: holeRect.width, height: holeRect.height)
+                        .position(x: holeRect.midX, y: holeRect.midY)
                 }
 
-                HandGuideOverlay()
-            }
-            .frame(height: 430)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-        .padding(.horizontal, 22)
-    }
+                Image("bg_align")
+                    .resizable()
+                    .frame(width: full.width, height: full.height)
+                    .offset(x: full.minX, y: full.minY)
+                    .allowsHitTesting(false)
 
-    private var workingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea()
-            VStack(spacing: 14) {
-                ProgressView()
-                    .controlSize(.large)
-                    .tint(Theme.gold)
-                Text(submission.state == .checking ? "Looking for your hand..." : "Sending to the spirits...")
-                    .font(Typography.bodyText)
-                    .foregroundStyle(Theme.goldLight)
+                if camera.isDenied {
+                    Text("Camera access is off.\nEnable it in Settings to take a photo.")
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.goldLight)
+                        .multilineTextAlignment(.center)
+                        .position(x: holeRect.midX, y: holeRect.midY)
+                }
+
+                ArtHotspot(rect: art.rect(0.02, 0.02, 0.14, 0.05), label: "Back",
+                           debug: ArtDebug.showHotspots) {
+                    dismiss()
+                }
+
+                // CONTINUE plate
+                ArtHotspot(rect: art.rect(0.13, 0.872, 0.74, 0.075), label: "Continue. Takes the photo.",
+                           debug: ArtDebug.showHotspots) {
+                    Task { await captureAndSubmit() }
+                }
+
+                if submission.state != .idle {
+                    WorkingVeil(text: submission.state == .checking
+                                ? "Looking for your hand..."
+                                : "Sending to the spirits...")
+                }
             }
         }
+        .preferredColorScheme(.dark)
+        .toolbar(.hidden, for: .navigationBar)
+        .task { await camera.start() }
+        .onDisappear { camera.stop() }
     }
 
     private func captureAndSubmit() async {
@@ -116,76 +87,8 @@ struct AlignHandView: View {
     }
 }
 
-// MARK: - Hand guide overlay
-
-/// Glowing hand outline, dashed crosshairs, and corner brackets over the live preview.
-private struct HandGuideOverlay: View {
-    var body: some View {
-        ZStack {
-            // Crosshair guides
-            DashedLine(vertical: false)
-            DashedLine(vertical: true)
-
-            Image(systemName: "hand.raised.fingers.spread")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(height: 280)
-                .foregroundStyle(Theme.glow.opacity(0.85))
-                .shadow(color: Theme.glow.opacity(0.9), radius: 12)
-
-            CornerBrackets()
-                .stroke(Theme.gold.opacity(0.9), lineWidth: 2)
-                .padding(14)
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    private struct DashedLine: View {
-        let vertical: Bool
-        var body: some View {
-            Rectangle()
-                .fill(.clear)
-                .overlay(
-                    GeometryReader { proxy in
-                        Path { p in
-                            if vertical {
-                                p.move(to: CGPoint(x: proxy.size.width / 2, y: 0))
-                                p.addLine(to: CGPoint(x: proxy.size.width / 2, y: proxy.size.height))
-                            } else {
-                                p.move(to: CGPoint(x: 0, y: proxy.size.height / 2))
-                                p.addLine(to: CGPoint(x: proxy.size.width, y: proxy.size.height / 2))
-                            }
-                        }
-                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [5, 6]))
-                        .foregroundStyle(Theme.gold.opacity(0.35))
-                    }
-                )
-        }
-    }
-
-    private struct CornerBrackets: Shape {
-        func path(in rect: CGRect) -> Path {
-            var p = Path()
-            let arm: CGFloat = 22
-            for (x, y, dx, dy) in [
-                (rect.minX, rect.minY, 1.0, 1.0),
-                (rect.maxX, rect.minY, -1.0, 1.0),
-                (rect.minX, rect.maxY, 1.0, -1.0),
-                (rect.maxX, rect.maxY, -1.0, -1.0),
-            ] {
-                p.move(to: CGPoint(x: x + dx * arm, y: y))
-                p.addLine(to: CGPoint(x: x, y: y))
-                p.addLine(to: CGPoint(x: x, y: y + dy * arm))
-            }
-            return p
-        }
-    }
-}
-
 // MARK: - Camera plumbing
 
-/// Minimal AVFoundation still-capture controller.
 @Observable
 @MainActor
 final class CameraController: NSObject {
@@ -237,8 +140,7 @@ final class CameraController: NSObject {
         guard isRunning else { return nil }
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
-            let settings = AVCapturePhotoSettings()
-            output.capturePhoto(with: settings, delegate: self)
+            output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
     }
 }
@@ -257,8 +159,7 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
     }
 }
 
-/// UIViewRepresentable wrapper for the AVCaptureVideoPreviewLayer.
-private struct CameraPreview: UIViewRepresentable {
+struct CameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
 
     func makeUIView(context: Context) -> PreviewView {

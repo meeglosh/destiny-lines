@@ -1,8 +1,9 @@
 import PhotosUI
 import SwiftUI
 
-/// DL-camera.png: "CAPTURE YOUR HAND" banner, preview frame, the two source rows,
-/// the lighting tip card, the §6.1 privacy line, and the footer banner.
+/// DL-camera.png used directly: baked banner, preview frame, source rows, tip card,
+/// and footer. This view adds the tap targets, the mandated §6.1 privacy line (not in
+/// the comp), the photo picker, and the Gate-1 → upload pipeline.
 struct CaptureView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
@@ -12,70 +13,42 @@ struct CaptureView: View {
     @State private var showLibraryPicker = false
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                BannerHeader(title: "CAPTURE YOUR HAND")
-                    .padding(.horizontal, 44)
-
-                Text("Take a clear photo\nof your palm")
-                    .font(Typography.bodyEmphasis)
-                    .foregroundStyle(Theme.goldLight)
-                    .multilineTextAlignment(.center)
-
-                previewFrame
-
-                VStack(spacing: Theme.cardSpacing) {
-                    ListRow(icon: "photo.on.rectangle", title: "CHOOSE FROM PHOTOS", subtitle: "Upload from your library") {
-                        showLibraryPicker = true
-                    }
-                    ListRow(icon: "camera.fill", title: "TAKE PHOTO", subtitle: "Use your camera") {
-                        appState.navigate(.align(source: .camera))
-                    }
-
-                    OrnateCard(contentPadding: 12) {
-                        HStack(spacing: 12) {
-                            Sparkle()
-                            Text("TIP: Use good lighting and show your full palm.")
-                                .font(Typography.caption)
-                                .foregroundStyle(Theme.goldLight)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Image(systemName: "hand.raised.fingers.spread")
-                                .foregroundStyle(Theme.gold)
-                                .accessibilityHidden(true)
-                        }
-                    }
-
-                    // The §6.1 privacy promise, scoped to us.
-                    Text("We delete your photo as soon as your reading is ready. We never keep it.")
-                        .font(Typography.fine)
-                        .foregroundStyle(Theme.goldLight.opacity(0.75))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 12)
-                }
-                .padding(.horizontal, 24)
-
-                BannerHeader(title: "YOUR FUTURE IS IN YOUR HANDS")
-                    .padding(.horizontal, 60)
-                    .padding(.top, 8)
+        ArtScreen(image: "bg_capture") { art in
+            ArtHotspot(rect: art.rect(0.02, 0.045, 0.13, 0.062), label: "Back",
+                       debug: ArtDebug.showHotspots) {
+                dismiss()
             }
-            .padding(.vertical, 10)
-        }
-        .screenBackground()
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                BackButton { dismiss() }
+
+            // CHOOSE FROM PHOTOS row
+            ArtHotspot(rect: art.rect(0.115, 0.585, 0.77, 0.075), label: "Choose from Photos. Upload from your library.",
+                       debug: ArtDebug.showHotspots) {
+                showLibraryPicker = true
+            }
+
+            // TAKE PHOTO row
+            ArtHotspot(rect: art.rect(0.115, 0.685, 0.77, 0.075), label: "Take Photo. Use your camera.",
+                       debug: ArtDebug.showHotspots) {
+                appState.navigate(.align(source: .camera))
+            }
+
+            // §6.1 privacy line — required copy, added in the art's empty band.
+            Text("We delete your photo as soon as your reading is ready. We never keep it.")
+                .font(Typography.fine)
+                .foregroundStyle(Theme.goldLight.opacity(0.8))
+                .multilineTextAlignment(.center)
+                .frame(width: art.frame.width * 0.8)
+                .position(art.point(0.5, 0.895))
+
+            if submission.state == .checking || submission.state == .uploading {
+                WorkingVeil(text: submission.state == .checking
+                            ? "Looking for your hand..."
+                            : "Sending to the spirits...")
             }
         }
         .photosPicker(isPresented: $showLibraryPicker, selection: $photosItem, matching: .images)
         .onChange(of: photosItem) { _, item in
             guard let item else { return }
             Task { await handlePicked(item) }
-        }
-        .overlay {
-            if submission.state == .checking || submission.state == .uploading {
-                workingOverlay
-            }
         }
         .alert(
             "Try Again",
@@ -92,36 +65,6 @@ struct CaptureView: View {
         }
     }
 
-    private var previewFrame: some View {
-        OrnateCard(contentPadding: 0) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.black.opacity(0.55))
-                Image(systemName: "hand.raised.fingers.spread.fill")
-                    .font(.system(size: 130))
-                    .foregroundStyle(Theme.gold.opacity(0.5))
-            }
-            .frame(height: 320)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .padding(.horizontal, 24)
-        .accessibilityHidden(true)
-    }
-
-    private var workingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea()
-            VStack(spacing: 14) {
-                ProgressView()
-                    .controlSize(.large)
-                    .tint(Theme.gold)
-                Text(submission.state == .checking ? "Looking for your hand..." : "Sending to the spirits...")
-                    .font(Typography.bodyText)
-                    .foregroundStyle(Theme.goldLight)
-            }
-        }
-    }
-
     private func handlePicked(_ item: PhotosPickerItem) async {
         defer { photosItem = nil }
         guard
@@ -131,6 +74,25 @@ struct CaptureView: View {
 
         if let route = await submission.submit(image) {
             appState.navigate(route)
+        }
+    }
+}
+
+/// Dimmed working overlay shared by capture and align.
+struct WorkingVeil: View {
+    let text: String
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.62).ignoresSafeArea()
+            VStack(spacing: 14) {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(Theme.gold)
+                Text(text)
+                    .font(Typography.bodyText)
+                    .foregroundStyle(Theme.goldLight)
+            }
         }
     }
 }

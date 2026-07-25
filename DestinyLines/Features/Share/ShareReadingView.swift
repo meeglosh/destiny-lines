@@ -1,82 +1,39 @@
 import Photos
 import SwiftUI
 
-/// DL-share-reading.png: card preview, SHARE NOW (ShareLink), SAVE TO PHOTOS
-/// (add-only authorization), and the footer motto.
+/// DL-share-reading.png used directly (bg_share_clean: the sample insight text has
+/// been lifted out of the card). Real key insights are typeset back into the card in
+/// the comp's style, both on screen and in the shared/saved image.
 struct ShareReadingView: View {
     let reading: Reading
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.displayScale) private var displayScale
 
     @State private var cardImage: UIImage?
     @State private var saveMessage: String?
 
+    /// The four insight rows in art-normalized space (icon column is baked art).
+    private let insightRows: [(y: CGFloat, height: CGFloat)] = [
+        (0.582, 0.045), (0.627, 0.045), (0.671, 0.045), (0.714, 0.045),
+    ]
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                VStack(spacing: 4) {
-                    Text("SHARE YOUR READING")
-                        .font(Typography.title)
-                        .foregroundStyle(Theme.goldBevel)
-                    Text("Share your destiny with the world")
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.goldLight.opacity(0.85))
-                }
-                .accessibilityAddTraits(.isHeader)
-
-                // Card preview at fit-to-screen scale.
-                ShareCardView(reading: reading)
-                    .frame(width: 1080, height: 1920)
-                    .scaleEffect(0.28, anchor: .top)
-                    .frame(width: 1080 * 0.28, height: 1920 * 0.28)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(Theme.gold.opacity(0.8), lineWidth: 1.5)
-                    )
-                    .accessibilityLabel("Preview of your share card")
-
-                VStack(spacing: Theme.cardSpacing) {
-                    if let cardImage {
-                        ShareLink(
-                            item: Image(uiImage: cardImage),
-                            preview: SharePreview("My Palm Reading", image: Image(uiImage: cardImage))
-                        ) {
-                            sharePlate(title: "SHARE NOW", icon: "square.and.arrow.up", prominent: true)
-                        }
-                        .buttonStyle(PressableButtonStyle())
-                    } else {
-                        sharePlate(title: "PREPARING...", icon: "hourglass", prominent: true)
-                            .opacity(0.6)
-                    }
-
-                    Button {
-                        Task { await saveToPhotos() }
-                    } label: {
-                        sharePlate(title: "SAVE TO PHOTOS", icon: "arrow.down.to.line", prominent: false)
-                    }
-                    .buttonStyle(PressableButtonStyle())
-                    .disabled(cardImage == nil)
-                }
-                .padding(.horizontal, 24)
-
-                HStack(spacing: 8) {
-                    Sparkle(size: 10)
-                    Text("Your reading. Your story. Share your destiny.")
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.goldLight.opacity(0.8))
-                    Sparkle(size: 10)
-                }
-                .padding(.bottom, 20)
+        ArtScreen(image: "bg_share_clean") { art in
+            ArtHotspot(rect: art.rect(0.02, 0.035, 0.14, 0.055), label: "Back",
+                       debug: ArtDebug.showHotspots) {
+                dismiss()
             }
-            .padding(.vertical, 8)
-        }
-        .screenBackground()
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                BackButton { dismiss() }
+
+            // Real insights typeset into the cleaned card region.
+            insightTexts(art)
+
+            // SHARE NOW plate
+            shareNowHotspot(art)
+
+            // SAVE TO PHOTOS plate
+            ArtHotspot(rect: art.rect(0.075, 0.906, 0.85, 0.062), label: "Save to Photos",
+                       debug: ArtDebug.showHotspots) {
+                Task { await saveToPhotos() }
             }
         }
         .task { renderCard() }
@@ -87,31 +44,44 @@ struct ShareReadingView: View {
         }
     }
 
-    private func sharePlate(title: String, icon: String, prominent: Bool) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
-            Text(title)
-                .font(Typography.cta)
+    @ViewBuilder
+    private func insightTexts(_ art: ArtGeometry) -> some View {
+        let insights = Array(reading.content.keyInsights.prefix(4))
+        ForEach(Array(insights.enumerated()), id: \.offset) { index, insight in
+            let row = insightRows[index]
+            Text(insight)
+                .font(.custom("AlegreyaSans-Regular", size: art.frame.height * 0.0155))
+                .foregroundStyle(Theme.goldLight)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .frame(width: art.frame.width * 0.50, alignment: .leading)
+                .position(art.point(0.578, row.y))
         }
-        .foregroundStyle(prominent ? AnyShapeStyle(Theme.goldBevel) : AnyShapeStyle(Theme.gold))
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(prominent ? AnyShapeStyle(Theme.ctaFill) : AnyShapeStyle(Theme.panel))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(prominent ? AnyShapeStyle(Theme.goldBevel) : AnyShapeStyle(Theme.goldDark), lineWidth: 2)
-                )
-        )
     }
 
-    /// Render the 1080x1920 card with ImageRenderer on the main actor (§10).
+    @ViewBuilder
+    private func shareNowHotspot(_ art: ArtGeometry) -> some View {
+        if let cardImage {
+            ShareLink(
+                item: Image(uiImage: cardImage),
+                preview: SharePreview("My Palm Reading", image: Image(uiImage: cardImage))
+            ) {
+                Rectangle().fill(Color.clear)
+            }
+            .buttonStyle(ArtPressStyle())
+            .frame(width: art.frame.width * 0.85, height: art.frame.height * 0.070)
+            .position(art.point(0.5, 0.856))
+            .accessibilityLabel("Share Now")
+        }
+    }
+
+    // MARK: - Card rendering
+
+    /// The shared/saved image: the comp's card art with the real insights typeset in.
     @MainActor
     private func renderCard() {
-        let renderer = ImageRenderer(content: ShareCardView(reading: reading).frame(width: 1080, height: 1920))
-        renderer.scale = 3
+        let renderer = ImageRenderer(content: ShareCardComposite(reading: reading))
+        renderer.scale = 2
         cardImage = renderer.uiImage
     }
 
@@ -134,86 +104,31 @@ struct ShareReadingView: View {
     }
 }
 
-/// The 1080x1920 story-format card itself (§10): large wordmark, banner, hand emblem,
-/// at most 4 insight bullets, high-contrast gold on near-black, footer URL.
-struct ShareCardView: View {
+/// The share card: comp card art + real insight text, rendered at story proportions.
+struct ShareCardComposite: View {
     let reading: Reading
 
+    // share_card_art is 610x1099; insight rows measured in its own space.
+    private let width: CGFloat = 610
+    private let height: CGFloat = 1099
+    private let rows: [CGFloat] = [0.700, 0.769, 0.838, 0.905]
+
     var body: some View {
-        VStack(spacing: 40) {
-            Spacer().frame(height: 30)
+        ZStack(alignment: .topLeading) {
+            Image("share_card_art")
+                .resizable()
+                .frame(width: width, height: height)
 
-            VStack(spacing: 0) {
-                Text("DESTINY")
-                    .font(.custom("Rye-Regular", size: 110))
-                Text("LINES")
-                    .font(.custom("Rye-Regular", size: 110))
+            ForEach(Array(reading.content.keyInsights.prefix(4).enumerated()), id: \.offset) { index, insight in
+                Text(insight)
+                    .font(.custom("AlegreyaSans-Regular", size: 19))
+                    .foregroundStyle(Theme.goldLight)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .frame(width: width * 0.60, alignment: .leading)
+                    .position(x: width * 0.585, y: height * rows[index])
             }
-            .foregroundStyle(Theme.goldBevel)
-            .shadow(color: Theme.glow.opacity(0.5), radius: 30)
-
-            Text("MY PALM READING")
-                .font(.custom("Rye-Regular", size: 44))
-                .foregroundStyle(Theme.ink)
-                .padding(.horizontal, 60)
-                .padding(.vertical, 22)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Theme.parchment)
-                )
-
-            Image(systemName: "hand.raised.fingers.spread.fill")
-                .font(.system(size: 330))
-                .foregroundStyle(Theme.goldBevel)
-                .shadow(color: Theme.glow.opacity(0.7), radius: 60)
-
-            VStack(alignment: .leading, spacing: 30) {
-                HStack {
-                    Spacer()
-                    Text("✦  KEY INSIGHTS  ✦")
-                        .font(.custom("Rye-Regular", size: 42))
-                        .foregroundStyle(Theme.gold)
-                    Spacer()
-                }
-                ForEach(Array(reading.content.keyInsights.prefix(4)), id: \.self) { insight in
-                    HStack(alignment: .top, spacing: 22) {
-                        Text("✦")
-                            .font(.system(size: 34))
-                            .foregroundStyle(Theme.gold)
-                        Text(insight)
-                            .font(.custom("AlegreyaSans-Medium", size: 38))
-                            .foregroundStyle(Theme.goldLight)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-            .padding(44)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color.black.opacity(0.4))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24)
-                            .strokeBorder(Theme.gold.opacity(0.9), lineWidth: 3)
-                    )
-            )
-            .padding(.horizontal, 60)
-
-            Spacer()
-
-            Text("✦  Read yours at DestinyLines.app  ✦")
-                .font(.custom("AlegreyaSans-Medium", size: 36))
-                .foregroundStyle(Theme.gold)
-                .padding(.bottom, 60)
         }
-        .frame(width: 1080, height: 1920)
-        .background(
-            RadialGradient(
-                colors: [Color(red: 0x2A / 255, green: 0x16 / 255, blue: 0x0C / 255), Theme.background],
-                center: .center,
-                startRadius: 100,
-                endRadius: 1100
-            )
-        )
+        .frame(width: width, height: height)
     }
 }

@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// DL-reading.png: "YOUR READING" header, OVERVIEW / IN-DEPTH / LINES segmented tabs.
-/// Overview lists the four line cards plus "View Full Reading"; In-Depth holds the
-/// timeline sections; Lines is the four cards expanded. Free-tier locked sections show
-/// a blurred teaser that routes to the paywall.
+/// DL-reading.png used directly for the OVERVIEW tab — every visual there is baked
+/// (titles, subtitles, icons are the same for all readings). Tabs and cards get
+/// hotspots; tapping a line opens its detail sheet with the real reading text.
+/// IN-DEPTH and LINES have no comps, so they render dynamic content over
+/// bg_reading_blank (the same art with the content region cleared).
 struct ReadingView: View {
     let reading: Reading
 
@@ -12,199 +13,125 @@ struct ReadingView: View {
 
     enum Tab: Hashable { case overview, inDepth, lines }
     @State private var tab: Tab = .overview
-    @State private var expandedLine: PalmLine.Kind?
+    @State private var detailLine: PalmLine.Kind?
 
     private var isFree: Bool { reading.tier == .free }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                header
-
-                SegmentedTabs(
-                    tabs: [(Tab.overview, "OVERVIEW"), (.inDepth, "IN-DEPTH"), (.lines, "LINES")],
-                    selection: $tab
-                )
-                .padding(.horizontal, 24)
-
-                switch tab {
-                case .overview: overview
-                case .inDepth: inDepth
-                case .lines: linesTab
-                }
-
-                footer
+        Group {
+            switch tab {
+            case .overview: overviewArt
+            case .inDepth: dynamicTab { inDepthContent }
+            case .lines: dynamicTab { linesContent }
             }
-            .padding(.vertical, 8)
         }
-        .screenBackground()
-        .navigationBarBackButtonHidden()
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                BackButton { dismiss() }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    appState.navigate(.share(reading))
-                } label: {
-                    IconMedallion(systemName: "square.and.arrow.up", diameter: 38)
-                }
-                .accessibilityLabel("Share this reading")
+        .sheet(item: $detailLine) { kind in
+            LineDetailSheet(kind: kind, line: line(for: kind), isFree: isFree) {
+                appState.showPaywall = true
             }
         }
     }
 
-    // MARK: - Header / footer
-
-    private var header: some View {
-        VStack(spacing: 4) {
-            Text("DESTINY LINES")
-                .font(Typography.displaySmall)
-                .kerning(2)
-                .foregroundStyle(Theme.gold.opacity(0.8))
-            HStack(spacing: 12) {
-                Sparkle()
-                Text("YOUR READING")
-                    .font(Typography.title)
-                    .foregroundStyle(Theme.goldBevel)
-                Sparkle()
-            }
-            OrnamentDivider()
-                .padding(.horizontal, 70)
+    private func line(for kind: PalmLine.Kind) -> PalmLine {
+        switch kind {
+        case .life: return reading.content.lines.life
+        case .head: return reading.content.lines.head
+        case .heart: return reading.content.lines.heart
+        case .fate: return reading.content.lines.fate
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
     }
 
-    private var footer: some View {
-        VStack(spacing: 6) {
-            crystalDot
-            Text("The future is in your hands.\nKeep exploring your destiny.")
-                .font(Typography.caption)
-                .foregroundStyle(Theme.goldLight.opacity(0.8))
-                .multilineTextAlignment(.center)
-            // Required disclaimer, shown on every reading (§9).
-            Text("For entertainment purposes only.")
-                .font(Typography.fine)
-                .foregroundStyle(Theme.gold.opacity(0.6))
-                .padding(.top, 4)
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 20)
-    }
+    // MARK: - Overview (pure art + hotspots)
 
-    private var crystalDot: some View {
-        Circle()
-            .fill(
-                RadialGradient(
-                    colors: [Theme.glow.opacity(0.9), .clear],
-                    center: .center, startRadius: 1, endRadius: 16
-                )
-            )
-            .frame(width: 26, height: 26)
-            .accessibilityHidden(true)
-    }
+    private var overviewArt: some View {
+        ArtScreen(image: "bg_reading") { art in
+            backHotspot(art)
+            tabHotspots(art)
 
-    // MARK: - Overview
+            // Four line cards
+            ArtHotspot(rect: art.rect(0.045, 0.218, 0.91, 0.140), label: "Life Line. Your vitality and major life changes.",
+                       debug: ArtDebug.showHotspots) { detailLine = .life }
+            ArtHotspot(rect: art.rect(0.045, 0.371, 0.91, 0.140), label: "Head Line. Your mind, intellect and decision making.",
+                       debug: ArtDebug.showHotspots) { detailLine = .head }
+            ArtHotspot(rect: art.rect(0.045, 0.527, 0.91, 0.140), label: "Heart Line. Your emotions, love and relationships.",
+                       debug: ArtDebug.showHotspots) { detailLine = .heart }
+            ArtHotspot(rect: art.rect(0.045, 0.680, 0.91, 0.140), label: "Fate Line. Your path, purpose and destiny.",
+                       debug: ArtDebug.showHotspots) { detailLine = .fate }
 
-    private var overview: some View {
-        VStack(spacing: Theme.cardSpacing) {
-            summaryCard
-
-            ForEach(reading.content.lines.ordered, id: \.kind) { entry in
-                lineCard(kind: entry.kind, line: entry.line)
-            }
-
-            PrimaryCTAButton(title: "VIEW FULL READING", showsBulbs: false) {
+            // VIEW FULL READING plate
+            ArtHotspot(rect: art.rect(0.10, 0.829, 0.80, 0.067), label: "View Full Reading",
+                       debug: ArtDebug.showHotspots) {
                 if isFree {
                     appState.showPaywall = true
                 } else {
                     tab = .inDepth
                 }
             }
-            .padding(.top, 4)
-        }
-        .padding(.horizontal, 24)
-    }
 
-    private var summaryCard: some View {
-        OrnateCard {
-            VStack(spacing: 8) {
-                Text("WHAT THE LINES SAY")
-                    .font(Typography.displaySmall)
-                    .kerning(1.5)
-                    .foregroundStyle(Theme.gold)
-                Text(reading.content.summary)
-                    .font(Typography.bodyText)
-                    .foregroundStyle(Theme.goldLight)
-                    .multilineTextAlignment(.center)
-            }
+            disclaimer(art)
         }
     }
 
-    private func lineCard(kind: PalmLine.Kind, line: PalmLine) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                expandedLine = expandedLine == kind ? nil : kind
+    // MARK: - Dynamic tabs (blank art + real content)
+
+    private func dynamicTab<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
+        ArtScreen(image: "bg_reading_blank") { art in
+            backHotspot(art)
+            tabHotspots(art)
+
+            ScrollView {
+                VStack(spacing: Theme.cardSpacing) {
+                    content()
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
             }
-        } label: {
-            OrnateCard(contentPadding: 12) {
+            .frame(width: art.frame.width * 0.94, height: art.frame.height * 0.62)
+            .position(art.point(0.5, 0.525))
+
+            disclaimer(art)
+        }
+    }
+
+    private var inDepthContent: some View {
+        Group {
+            timelineCard("THE NEAR FUTURE", text: reading.content.timeline.nearFuture, locked: false)
+            timelineCard("THIS YEAR", text: reading.content.timeline.thisYear, locked: isFree)
+            timelineCard("THE LONG ROAD", text: reading.content.timeline.longTerm, locked: isFree)
+            keyInsightsCard
+        }
+    }
+
+    private var linesContent: some View {
+        ForEach(reading.content.lines.ordered, id: \.kind) { entry in
+            OrnateCard(contentPadding: 14) {
                 VStack(spacing: 10) {
                     HStack(spacing: 14) {
-                        IconMedallion(systemName: kind.icon, diameter: 56)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(line.title.uppercased())
+                        IconMedallion(systemName: entry.kind.icon, diameter: 48)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.line.title.uppercased())
                                 .font(Typography.heading)
                                 .foregroundStyle(Theme.gold)
-                            Text(line.subtitle)
+                            Text(entry.line.subtitle)
                                 .font(Typography.caption)
                                 .foregroundStyle(Theme.goldLight.opacity(0.85))
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        Image(systemName: expandedLine == kind ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Theme.gold)
-                            .accessibilityHidden(true)
                     }
-
-                    if expandedLine == kind {
-                        lineDetail(line)
+                    OrnamentDivider()
+                    Text(entry.line.body)
+                        .font(Typography.bodyText)
+                        .foregroundStyle(Theme.goldLight)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let traits = entry.line.traits, !traits.isEmpty {
+                        TraitChips(traits: traits)
                     }
                 }
             }
         }
-        .buttonStyle(PressableButtonStyle())
-        .accessibilityHint(expandedLine == kind ? "Collapses the detail" : "Expands the detail")
     }
 
-    private func lineDetail(_ line: PalmLine) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            OrnamentDivider()
-            Text(line.body)
-                .font(Typography.bodyText)
-                .foregroundStyle(Theme.goldLight)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let traits = line.traits, !traits.isEmpty {
-                FlowTraits(traits: traits)
-            }
-        }
-    }
-
-    // MARK: - In-Depth
-
-    private var inDepth: some View {
-        VStack(spacing: Theme.cardSpacing) {
-            timelineSection("THE NEAR FUTURE", text: reading.content.timeline.nearFuture, locked: false)
-            timelineSection("THIS YEAR", text: reading.content.timeline.thisYear, locked: isFree)
-            timelineSection("THE LONG ROAD", text: reading.content.timeline.longTerm, locked: isFree)
-
-            keyInsightsCard
-        }
-        .padding(.horizontal, 24)
-    }
-
-    private func timelineSection(_ title: String, text: String?, locked: Bool) -> some View {
+    private func timelineCard(_ title: String, text: String?, locked: Bool) -> some View {
         OrnateCard {
             VStack(spacing: 8) {
                 Text(title)
@@ -213,7 +140,7 @@ struct ReadingView: View {
                     .foregroundStyle(Theme.gold)
 
                 if locked || text == nil {
-                    lockedTeaser
+                    LockedTeaser { appState.showPaywall = true }
                 } else {
                     Text(text ?? "")
                         .font(Typography.bodyText)
@@ -224,13 +151,152 @@ struct ReadingView: View {
         }
     }
 
-    /// Blurred teaser for free-tier locked sections; tapping routes to the paywall.
-    private var lockedTeaser: some View {
-        Button {
-            appState.showPaywall = true
-        } label: {
+    private var keyInsightsCard: some View {
+        OrnateCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Spacer()
+                    Sparkle(size: 10)
+                    Text("KEY INSIGHTS")
+                        .font(Typography.displaySmall)
+                        .kerning(1.5)
+                        .foregroundStyle(Theme.gold)
+                    Sparkle(size: 10)
+                    Spacer()
+                }
+                ForEach(reading.content.keyInsights, id: \.self) { insight in
+                    HStack(alignment: .top, spacing: 10) {
+                        Sparkle(size: 10).padding(.top, 4)
+                        Text(insight)
+                            .font(Typography.bodyText)
+                            .foregroundStyle(Theme.goldLight)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Shared hotspots
+
+    private func backHotspot(_ art: ArtGeometry) -> some View {
+        ArtHotspot(rect: art.rect(0.02, 0.055, 0.13, 0.062), label: "Back",
+                   debug: ArtDebug.showHotspots) {
+            dismiss()
+        }
+    }
+
+    @ViewBuilder
+    private func tabHotspots(_ art: ArtGeometry) -> some View {
+        ArtHotspot(rect: art.rect(0.045, 0.163, 0.325, 0.052), label: "Overview tab",
+                   debug: ArtDebug.showHotspots) { tab = .overview }
+        ArtHotspot(rect: art.rect(0.378, 0.163, 0.28, 0.052), label: "In-Depth tab",
+                   debug: ArtDebug.showHotspots) { tab = .inDepth }
+        ArtHotspot(rect: art.rect(0.665, 0.163, 0.29, 0.052), label: "Lines tab",
+                   debug: ArtDebug.showHotspots) { tab = .lines }
+
+        // Selected-tab indicator when off Overview (the art bakes Overview as selected).
+        if tab != .overview {
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Theme.gold, lineWidth: 1.6)
+                .frame(
+                    width: art.frame.width * (tab == .inDepth ? 0.28 : 0.29),
+                    height: art.frame.height * 0.052
+                )
+                .position(
+                    x: art.frame.minX + art.frame.width * (tab == .inDepth ? 0.518 : 0.810),
+                    y: art.frame.minY + art.frame.height * 0.189
+                )
+                .allowsHitTesting(false)
+        }
+    }
+
+    private func disclaimer(_ art: ArtGeometry) -> some View {
+        // Required disclaimer on readings (§9): slim strip pinned under the art's footer.
+        Text("For entertainment purposes only.")
+            .font(Typography.fine)
+            .foregroundStyle(Theme.gold.opacity(0.7))
+            .frame(width: art.frame.width, height: art.frame.height * 0.022)
+            .background(Theme.background)
+            .position(art.point(0.5, 0.989))
+    }
+}
+
+extension PalmLine.Kind {
+    var displayTitle: String {
+        switch self {
+        case .life: return "LIFE LINE"
+        case .head: return "HEAD LINE"
+        case .heart: return "HEART LINE"
+        case .fate: return "FATE LINE"
+        }
+    }
+}
+
+/// Detail sheet for one line, in the established style (no comp exists for it).
+struct LineDetailSheet: View {
+    let kind: PalmLine.Kind
+    let line: PalmLine
+    let isFree: Bool
+    let onUnlock: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                IconMedallion(systemName: kind.icon, diameter: 74)
+                    .padding(.top, 24)
+
+                Text(kind.displayTitle)
+                    .font(Typography.title)
+                    .foregroundStyle(Theme.goldBevel)
+
+                Text(line.subtitle)
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.goldLight.opacity(0.85))
+
+                OrnamentDivider()
+                    .padding(.horizontal, 60)
+
+                OrnateCard {
+                    Text(line.body)
+                        .font(Typography.bodyText)
+                        .foregroundStyle(Theme.goldLight)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 20)
+
+                if let traits = line.traits, !traits.isEmpty {
+                    TraitChips(traits: traits)
+                        .padding(.horizontal, 20)
+                } else if isFree {
+                    Button(action: onUnlock) {
+                        Label("Unlock traits with Premium", systemImage: "lock.fill")
+                            .font(Typography.bodyEmphasis)
+                            .foregroundStyle(Theme.gold)
+                    }
+                }
+
+                Button("Close") { dismiss() }
+                    .font(Typography.bodyEmphasis)
+                    .foregroundStyle(Theme.gold)
+                    .padding(.bottom, 24)
+            }
+        }
+        .screenBackground()
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+/// Blurred locked teaser routing to the paywall.
+struct LockedTeaser: View {
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
             ZStack {
-                Text(placeholderProse)
+                Text("The road bends toward brighter seasons, and what you plant in quiet months will flower in full view. Watch for a door that opens twice.")
                     .font(Typography.bodyText)
                     .foregroundStyle(Theme.goldLight)
                     .multilineTextAlignment(.center)
@@ -249,67 +315,10 @@ struct ReadingView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Locked. Unlock with Premium.")
     }
-
-    private var placeholderProse: String {
-        "The road bends toward brighter seasons, and what you plant in quiet months will flower in full view. Watch for a door that opens twice."
-    }
-
-    private var keyInsightsCard: some View {
-        OrnateCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Spacer()
-                    Sparkle(size: 10)
-                    Text("KEY INSIGHTS")
-                        .font(Typography.displaySmall)
-                        .kerning(1.5)
-                        .foregroundStyle(Theme.gold)
-                    Sparkle(size: 10)
-                    Spacer()
-                }
-                ForEach(reading.content.keyInsights, id: \.self) { insight in
-                    HStack(alignment: .top, spacing: 10) {
-                        Sparkle(size: 10)
-                            .padding(.top, 4)
-                        Text(insight)
-                            .font(Typography.bodyText)
-                            .foregroundStyle(Theme.goldLight)
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Lines tab
-
-    private var linesTab: some View {
-        VStack(spacing: Theme.cardSpacing) {
-            ForEach(reading.content.lines.ordered, id: \.kind) { entry in
-                OrnateCard(contentPadding: 14) {
-                    VStack(spacing: 10) {
-                        HStack(spacing: 14) {
-                            IconMedallion(systemName: entry.kind.icon, diameter: 50)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.line.title.uppercased())
-                                    .font(Typography.heading)
-                                    .foregroundStyle(Theme.gold)
-                                Text(entry.line.subtitle)
-                                    .font(Typography.caption)
-                                    .foregroundStyle(Theme.goldLight.opacity(0.85))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        lineDetail(entry.line)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 24)
-    }
 }
 
-/// Trait chips laid out in rows.
-private struct FlowTraits: View {
+/// Trait chips.
+struct TraitChips: View {
     let traits: [String]
 
     var body: some View {
@@ -328,6 +337,10 @@ private struct FlowTraits: View {
             }
         }
     }
+}
+
+extension PalmLine.Kind {
+    // Identifiable for .sheet(item:)
 }
 
 /// Minimal flow layout for chips.
