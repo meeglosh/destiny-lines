@@ -14,29 +14,31 @@ struct CaptureView: View {
 
     var body: some View {
         ArtScreen(image: "bg_capture") { art in
-            ArtHotspot(rect: art.rect(0.02, 0.045, 0.13, 0.062), label: "Back",
+            // Coordinates are relative to the trimmed art (the comp's bottom banner was
+            // removed so the rest of the screen has room to breathe on real devices).
+            ArtHotspot(rect: art.rect(0.02, 0.049, 0.13, 0.067), label: "Back",
                        debug: ArtDebug.showHotspots) {
                 dismiss()
             }
 
             // CHOOSE FROM PHOTOS row
-            ArtHotspot(rect: art.rect(0.115, 0.585, 0.77, 0.075), label: "Choose from Photos. Upload from your library.",
+            ArtHotspot(rect: art.rect(0.115, 0.634, 0.77, 0.081), label: "Choose from Photos. Upload from your library.",
                        debug: ArtDebug.showHotspots) {
                 showLibraryPicker = true
             }
 
             // TAKE PHOTO row
-            ArtHotspot(rect: art.rect(0.115, 0.685, 0.77, 0.075), label: "Take Photo. Use your camera.",
+            ArtHotspot(rect: art.rect(0.115, 0.743, 0.77, 0.081), label: "Take Photo. Use your camera.",
                        debug: ArtDebug.showHotspots) {
                 appState.navigate(.align(source: .camera))
             }
 
-            // §6.1 privacy line — required copy, added in the art's empty band.
+            // §6.1 privacy line — required copy, in the band the banner used to occupy.
             Text("We delete your photo as soon as your reading is ready. We never keep it.")
                 .font(Typography.fine)
                 .foregroundStyle(Theme.goldLight.opacity(0.8))
                 .multilineTextAlignment(.center)
-                .artFrame(art.rect(0.10, 0.875, 0.80, 0.040))
+                .artFrame(art.rect(0.08, 0.945, 0.84, 0.048))
                 .allowsHitTesting(false)
 
             if submission.state == .checking || submission.state == .uploading {

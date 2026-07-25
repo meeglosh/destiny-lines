@@ -102,9 +102,9 @@ struct RootView: View {
         case "align": appState.navigate(.align(source: .camera))
         case "analyzing": appState.navigate(.analyzing(objectKey: "debug"))
         case "rejection": appState.navigate(.rejection(.tooDark))
-        case "reading", "history", "share":
+        case "reading", "reading-indepth", "reading-lines", "reading-detail", "history", "share":
             if readingStore.readings.isEmpty { readingStore.add(sample) }
-            if route == "reading" { appState.navigate(.reading(sample)) }
+            if route.hasPrefix("reading") { appState.navigate(.reading(sample)) }
             if route == "history" { appState.navigate(.history) }
             if route == "share" { appState.navigate(.share(sample)) }
         case "settings": appState.navigate(.settings)

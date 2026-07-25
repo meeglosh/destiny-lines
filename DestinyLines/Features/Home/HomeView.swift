@@ -9,11 +9,17 @@ struct HomeView: View {
 
     var body: some View {
         ArtScreen(image: "bg_home") { art in
-            // Sound toggle, drawn over the baked compass medallion top-left.
+            // The comp's two top medallions were decorative; they've been erased from the
+            // art and replaced with these working controls in the same style and place.
             MuteButton(isMuted: audio.isMuted) {
                 audio.toggleMute()
             }
             .artFrame(art.rect(0.052, 0.048, 0.115, 0.056))
+
+            ArtMedallionButton(systemName: "gearshape.fill", label: "Settings") {
+                appState.navigate(.settings)
+            }
+            .artFrame(art.rect(0.840, 0.048, 0.115, 0.056))
 
             // NEW READING marquee plate
             ArtHotspot(
@@ -55,18 +61,6 @@ struct HomeView: View {
                 appState.navigate(.settings)
             }
 
-            // Live badge over the baked top-right medallion.
-            if !readingStore.readings.isEmpty {
-                Text("\(readingStore.readings.count)")
-                    .font(Typography.fine)
-                    .foregroundStyle(.white)
-                    .padding(6)
-                    .background(Circle().fill(Color(red: 0.72, green: 0.20, blue: 0.10)))
-                    .overlay(Circle().strokeBorder(Theme.gold.opacity(0.7), lineWidth: 1))
-                    .artFrame(art.rect(0.905, 0.032, 0.10, 0.040))
-                    .allowsHitTesting(false)
-                    .accessibilityLabel("\(readingStore.readings.count) saved readings")
-            }
         }
     }
 }

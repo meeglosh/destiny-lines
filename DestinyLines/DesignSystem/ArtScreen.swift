@@ -6,26 +6,29 @@ import UIKit
 ///
 /// The comps are used directly per the owner's direction — the app IS the mockups.
 ///
-/// **Sizing is aspect-FIT, never fill or stretch.** The comps' aspect ratios differ from
-/// each other and from every device (the paywall art is markedly wider than the rest), so
-/// filling crops content off-screen and stretching distorts it — badly on short, wide
-/// phones like the SE. Fitting guarantees every baked control stays visible on any device;
-/// the leftover margin is filled with the art's own near-black, which is invisible in
-/// practice because all the comps are dark at the edges.
+/// **Sizing is aspect-FIT inside the safe area, never fill or stretch.** Two reasons:
+///
+/// 1. The comps' aspect ratios differ from each other and from every device (the paywall
+///    art is markedly wider than the rest), so filling crops content off-screen and
+///    stretching distorts it — badly on short, wide phones.
+/// 2. Fitting the *safe area* rather than the whole screen keeps baked chrome out from
+///    under the Dynamic Island and the home indicator. Drawing edge-to-edge put the
+///    Capture banner behind the island and let the reading header be clipped.
+///
+/// The surrounding margin is filled with the art's own near-black, which reads as part of
+/// the artwork because every comp is dark at its edges.
 struct ArtScreen<Overlay: View>: View {
     let image: String
     @ViewBuilder var overlay: (ArtGeometry) -> Overlay
 
     var body: some View {
         GeometryReader { proxy in
-            let container = ArtLayout.container(proxy)
-            let art = ArtGeometry(frame: ArtLayout.fittedFrame(for: image, in: container))
+            // This GeometryReader is laid out inside the safe area, so its bounds are
+            // exactly the region the art must stay within.
+            let box = CGRect(origin: .zero, size: proxy.size)
+            let art = ArtGeometry(frame: ArtLayout.fittedFrame(for: image, in: box))
 
             ZStack(alignment: .topLeading) {
-                Theme.background
-                    .frame(width: container.width, height: container.height)
-                    .offset(x: container.minX, y: container.minY)
-
                 Image(image)
                     .resizable()
                     .artFrame(art.frame)
@@ -33,7 +36,8 @@ struct ArtScreen<Overlay: View>: View {
                 overlay(art)
             }
         }
-        .ignoresSafeArea(.keyboard)
+        // Only the backdrop bleeds past the safe area; the art itself never does.
+        .background(Theme.background.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .toolbar(.hidden, for: .navigationBar)
     }

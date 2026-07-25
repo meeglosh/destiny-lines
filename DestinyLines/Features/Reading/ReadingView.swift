@@ -12,10 +12,31 @@ struct ReadingView: View {
     @Environment(\.dismiss) private var dismiss
 
     enum Tab: Hashable { case overview, inDepth, lines }
-    @State private var tab: Tab = .overview
-    @State private var detailLine: PalmLine.Kind?
+    @State private var tab: Tab = Self.initialTab
+    @State private var detailLine: PalmLine.Kind? = Self.initialDetail
 
     private var isFree: Bool { reading.tier == .free }
+
+    private static var initialDetail: PalmLine.Kind? {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["DEBUG_ROUTE"] == "reading-detail" ? .life : nil
+        #else
+        return nil
+        #endif
+    }
+
+    /// Debug builds can open straight onto a tab for screenshot verification.
+    private static var initialTab: Tab {
+        #if DEBUG
+        switch ProcessInfo.processInfo.environment["DEBUG_ROUTE"] {
+        case "reading-indepth": return .inDepth
+        case "reading-lines": return .lines
+        default: return .overview
+        }
+        #else
+        return .overview
+        #endif
+    }
 
     var body: some View {
         Group {
@@ -79,14 +100,17 @@ struct ReadingView: View {
             backHotspot(art)
             tabHotspots(art)
 
-            ScrollView {
+            // Runs from just under the tab rail down to the footer band, so long
+            // readings scroll instead of being clipped by a short content window.
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: Theme.cardSpacing) {
                     content()
                 }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 24)
             }
-            .artFrame(art.rect(0.03, 0.215, 0.94, 0.62))
+            .artFrame(art.rect(0.035, 0.213, 0.93, 0.725))
 
             disclaimer(art)
         }
@@ -207,13 +231,19 @@ struct ReadingView: View {
     }
 
     private func disclaimer(_ art: ArtGeometry) -> some View {
-        // Required disclaimer on readings (§9): slim strip pinned under the art's footer.
-        Text("For entertainment purposes only.")
-            .font(Typography.fine)
-            .foregroundStyle(Theme.gold.opacity(0.7))
-            .artFrame(art.rect(0, 0.978, 1, 0.022))
-            .background(Theme.background)
-            .allowsHitTesting(false)
+        // Required disclaimer on readings (§9). The comp's own footer sentence was
+        // erased from the artwork so this sits in that band instead of colliding with it.
+        VStack(spacing: 2) {
+            Text("The future is in your hands.")
+                .font(Typography.caption)
+                .foregroundStyle(Theme.goldLight.opacity(0.85))
+            Text("For entertainment purposes only.")
+                .font(Typography.fine)
+                .foregroundStyle(Theme.gold.opacity(0.65))
+        }
+        .multilineTextAlignment(.center)
+        .artFrame(art.rect(0.1, 0.944, 0.8, 0.05))
+        .allowsHitTesting(false)
     }
 }
 
@@ -238,33 +268,36 @@ struct LineDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                IconMedallion(systemName: kind.icon, diameter: 74)
-                    .padding(.top, 24)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 14) {
+                IconMedallion(systemName: kind.icon, diameter: 70)
+                    .padding(.top, 18)
 
                 Text(kind.displayTitle)
                     .font(Typography.title)
                     .foregroundStyle(Theme.goldBevel)
 
                 Text(line.subtitle)
-                    .font(Typography.caption)
+                    .font(Typography.bodyText)
                     .foregroundStyle(Theme.goldLight.opacity(0.85))
 
                 OrnamentDivider()
                     .padding(.horizontal, 60)
 
-                OrnateCard {
+                OrnateCard(contentPadding: 18) {
                     Text(line.body)
-                        .font(Typography.bodyText)
+                        // Larger than standard body copy: this is the reading itself and
+                        // the sheet exists to be read, not skimmed.
+                        .font(.custom("AlegreyaSans-Regular", size: 21, relativeTo: .body))
+                        .lineSpacing(3)
                         .foregroundStyle(Theme.goldLight)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 16)
 
                 if let traits = line.traits, !traits.isEmpty {
                     TraitChips(traits: traits)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 16)
                 } else if isFree {
                     Button(action: onUnlock) {
                         Label("Unlock traits with Premium", systemImage: "lock.fill")
@@ -272,15 +305,13 @@ struct LineDetailSheet: View {
                             .foregroundStyle(Theme.gold)
                     }
                 }
-
-                Button("Close") { dismiss() }
-                    .font(Typography.bodyEmphasis)
-                    .foregroundStyle(Theme.gold)
-                    .padding(.bottom, 24)
             }
+            .padding(.bottom, 28)
         }
         .screenBackground()
-        .presentationDetents([.medium, .large])
+        // Opens tall so the reading has room; the drag indicator is the way out, so no
+        // redundant Close button competing with it.
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
 }
