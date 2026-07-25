@@ -1,0 +1,68 @@
+import CoreImage
+import UIKit
+import Vision
+
+/// Client-side image duties from §6.3: Gate 1 hand detection, downscale to a 1024px
+/// long edge, and a clean JPEG re-encode that strips all EXIF (GPS, device, timestamps).
+enum ImageProcessor {
+
+    /// Gate 1 confidence threshold.
+    ///
+    /// PROVISIONAL — deliberately permissive (§6.2a says bias Gate 1 toward permissiveness;
+    /// a false negative loses a user, a false positive costs $0.0002 at Gate 3). The final
+    /// value must come from the offline calibration harness over the owner's labeled set
+    /// (build-order step 6b) and be committed with provenance. Do not tighten it by feel.
+    static let gate1ConfidenceThreshold: Float = 0.3
+
+    /// Gate 1: on-device hand detection (§6.2). Non-hands never leave the phone.
+    /// Detects hand *pose*, so backs of hands pass here — palm-vs-dorsum is Gate 3's job.
+    static func detectHand(in image: UIImage) async throws -> Bool {
+        guard let cgImage = image.cgImage else { return false }
+
+        let request = VNDetectHumanHandPoseRequest()
+        request.maximumHandCount = 2
+
+        let orientation = CGImagePropertyOrientation(image.imageOrientation)
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation)
+
+        return try await Task.detached(priority: .userInitiated) {
+            try handler.perform([request])
+            let confidences = (request.results ?? []).map(\.confidence)
+            return confidences.contains { $0 >= gate1ConfidenceThreshold }
+        }.value
+    }
+
+    /// Downscale to a 1024px long edge and re-encode as JPEG at 0.8 quality.
+    /// Re-encoding through UIGraphicsImageRenderer produces a fresh bitmap with no
+    /// source metadata, which is the EXIF strip §6.1 requires (GPS included).
+    static func prepareForUpload(_ image: UIImage) -> Data? {
+        let longEdge: CGFloat = 1024
+        let size = image.size
+        let scale = min(1, longEdge / max(size.width, size.height))
+        let target = CGSize(width: (size.width * scale).rounded(), height: (size.height * scale).rounded())
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: target, format: format)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: target))
+        }
+        return resized.jpegData(compressionQuality: 0.8)
+    }
+}
+
+private extension CGImagePropertyOrientation {
+    init(_ orientation: UIImage.Orientation) {
+        switch orientation {
+        case .up: self = .up
+        case .down: self = .down
+        case .left: self = .left
+        case .right: self = .right
+        case .upMirrored: self = .upMirrored
+        case .downMirrored: self = .downMirrored
+        case .leftMirrored: self = .leftMirrored
+        case .rightMirrored: self = .rightMirrored
+        @unknown default: self = .up
+        }
+    }
+}

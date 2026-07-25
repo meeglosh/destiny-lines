@@ -34,6 +34,11 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        UIAppFonts:
+          - Rye-Regular.ttf
+          - AlegreyaSans-Regular.ttf
+          - AlegreyaSans-Medium.ttf
+          - AlegreyaSans-Bold.ttf
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines

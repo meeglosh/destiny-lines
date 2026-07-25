@@ -26,6 +26,13 @@
 	<string>Save your reading's share card to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose an existing photo of your palm from your library.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Rye-Regular.ttf</string>
+		<string>AlegreyaSans-Regular.ttf</string>
+		<string>AlegreyaSans-Medium.ttf</string>
+		<string>AlegreyaSans-Bold.ttf</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
