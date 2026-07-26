@@ -1,9 +1,8 @@
 import Photos
 import SwiftUI
 
-/// DL-share-reading.png used directly (bg_share_clean: the sample insight text has
-/// been lifted out of the card). Real key insights are typeset back into the card in
-/// the comp's style, both on screen and in the shared/saved image.
+/// Share, rebuilt from components: live header, the composited share card preview
+/// (comp card art + real insights), and the two action plates.
 struct ShareReadingView: View {
     let reading: Reading
 
@@ -12,30 +11,78 @@ struct ShareReadingView: View {
     @State private var cardImage: UIImage?
     @State private var saveMessage: String?
 
-    /// The four insight rows in art-normalized space (icon column is baked art).
-    private let insightRows: [(y: CGFloat, height: CGFloat)] = [
-        (0.582, 0.045), (0.627, 0.045), (0.671, 0.045), (0.714, 0.045),
-    ]
-
     var body: some View {
-        ArtScreen(image: "bg_share_clean") { art in
-            ArtHotspot(rect: art.rect(0.02, 0.035, 0.14, 0.055), label: "Back",
-                       debug: ArtDebug.showHotspots) {
-                dismiss()
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 14) {
+                ZStack {
+                    VStack(spacing: 4) {
+                        Text("SHARE YOUR READING")
+                            .font(Typography.title)
+                            .foregroundStyle(Theme.goldBevel)
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(1)
+                            .padding(.horizontal, 70)
+                        Text("Share your destiny with the world")
+                            .font(Typography.caption)
+                            .foregroundStyle(Theme.goldLight.opacity(0.85))
+                    }
+                    HStack {
+                        BackButton { dismiss() }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .padding(.top, 6)
+                .accessibilityAddTraits(.isHeader)
+
+                // scaleEffect keeps the layout box at full size, so the shrunk visual must
+                // be re-framed to its scaled dimensions with the default center anchor —
+                // an off-center anchor slides the visual out of the frame.
+                ShareCardComposite(reading: reading)
+                    .scaleEffect(0.42)
+                    .frame(width: 610 * 0.42, height: 1099 * 0.42)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .strokeBorder(Theme.gold.opacity(0.8), lineWidth: 1.5)
+                    )
+                    .accessibilityLabel("Preview of your share card")
+
+                VStack(spacing: Theme.cardSpacing) {
+                    if let cardImage {
+                        ShareLink(
+                            item: Image(uiImage: cardImage),
+                            preview: SharePreview("My Palm Reading", image: Image(uiImage: cardImage))
+                        ) {
+                            plateLabel("SHARE NOW")
+                        }
+                        .buttonStyle(PressableButtonStyle())
+                        .accessibilityLabel("Share Now")
+                    } else {
+                        plateLabel("PREPARING...")
+                            .opacity(0.6)
+                    }
+
+                    ArtPlateButton(style: .crimson, text: "SAVE TO PHOTOS", enabled: cardImage != nil) {
+                        Task { await saveToPhotos() }
+                    }
+                }
+                .padding(.horizontal, 26)
+                .frame(maxWidth: 480)
+
+                HStack(spacing: 8) {
+                    Sparkle(size: 10)
+                    Text("Your reading. Your story. Share your destiny.")
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.goldLight.opacity(0.8))
+                    Sparkle(size: 10)
+                }
+                .padding(.bottom, 16)
             }
-
-            // Real insights typeset into the cleaned card region.
-            insightTexts(art)
-
-            // SHARE NOW plate
-            shareNowHotspot(art)
-
-            // SAVE TO PHOTOS plate
-            ArtHotspot(rect: art.rect(0.075, 0.906, 0.85, 0.062), label: "Save to Photos",
-                       debug: ArtDebug.showHotspots) {
-                Task { await saveToPhotos() }
-            }
+            .frame(maxWidth: .infinity)
         }
+        .boothBackground()
+        .toolbar(.hidden, for: .navigationBar)
         .task { renderCard() }
         .alert("Saved", isPresented: Binding(get: { saveMessage != nil }, set: { _ in saveMessage = nil })) {
             Button("OK", role: .cancel) {}
@@ -44,34 +91,25 @@ struct ShareReadingView: View {
         }
     }
 
-    @ViewBuilder
-    private func insightTexts(_ art: ArtGeometry) -> some View {
-        let insights = Array(reading.content.keyInsights.prefix(4))
-        ForEach(Array(insights.enumerated()), id: \.offset) { index, insight in
-            let row = insightRows[index]
-            Text(insight)
-                .font(.custom("AlegreyaSans-Regular", size: art.frame.height * 0.0155))
-                .foregroundStyle(Theme.goldLight)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-                .artFrame(art.rect(0.328, row.y - row.height / 2, 0.50, row.height), alignment: .leading)
-                .allowsHitTesting(false)
-        }
-    }
-
-    @ViewBuilder
-    private func shareNowHotspot(_ art: ArtGeometry) -> some View {
-        if let cardImage {
-            ShareLink(
-                item: Image(uiImage: cardImage),
-                preview: SharePreview("My Palm Reading", image: Image(uiImage: cardImage))
-            ) {
-                Rectangle().fill(Color.clear)
-            }
-            .buttonStyle(ArtPressStyle())
-            .artFrame(art.rect(0.075, 0.821, 0.85, 0.070))
-            .accessibilityLabel("Share Now")
-        }
+    private func plateLabel(_ text: String) -> some View {
+        Image("plate_crimson")
+            .resizable()
+            .scaledToFit()
+            .overlay(
+                GeometryReader { proxy in
+                    HStack(spacing: proxy.size.height * 0.12) {
+                        Sparkle(size: proxy.size.height * 0.11)
+                        Text(text)
+                            .font(.custom("Rye-Regular", size: proxy.size.height * 0.34))
+                            .kerning(1.5)
+                            .foregroundStyle(Theme.goldBevel)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                        Sparkle(size: proxy.size.height * 0.11)
+                    }
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                }
+            )
     }
 
     // MARK: - Card rendering

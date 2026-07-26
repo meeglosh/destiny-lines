@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// DL-analyzing-palm.png used directly. Adds a slow breathing glow over the baked
-/// bulb ring (skipped under Reduce Motion), runs analyze-palm with the 60s timeout,
-/// and routes to the reading, the rejection state, or a retry alert.
+/// Analyzing, rebuilt from components: ribbon title, the sliced bulb-ring hand with a
+/// breathing glow (skipped under Reduce Motion), the crystal ball, patience card, and
+/// the §6.1 privacy line. Runs analyze-palm with the 60s timeout.
 struct AnalyzingView: View {
     let objectKey: String
 
@@ -15,29 +15,52 @@ struct AnalyzingView: View {
     @State private var failureMessage = ""
 
     var body: some View {
-        ArtScreen(image: "bg_analyzing") { art in
-            // Breathing halo over the baked ring; pure additive glow, no layout.
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Theme.glow.opacity(pulse ? 0.28 : 0.10), .clear],
-                        center: .center,
-                        startRadius: 10,
-                        endRadius: art.frame.width * 0.42
-                    )
-                )
-                .artFrame(art.rect(0.05, 0.47 - 0.45 * (art.frame.width / art.frame.height), 0.90,
-                                   0.90 * (art.frame.width / art.frame.height)))
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 14) {
+                RibbonBanner(text: "READING YOUR LINES")
+                    .padding(.horizontal, 52)
+                    .padding(.top, 8)
 
-            // §6.1 privacy line, in the empty band under the patience card.
-            Text("We delete your photo as soon as this finishes.")
-                .font(Typography.fine)
-                .foregroundStyle(Theme.goldLight.opacity(0.75))
-                .artFrame(art.rect(0.10, 0.938, 0.80, 0.034))
-                .allowsHitTesting(false)
+                Text("Analyzing your palm...")
+                    .font(Typography.bodyEmphasis)
+                    .foregroundStyle(Theme.goldLight)
+
+                Image("analyzing_ring_hand")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 360)
+                    .padding(.horizontal, 30)
+                    .shadow(color: Theme.glow.opacity(pulse ? 0.55 : 0.15), radius: 30)
+                    .accessibilityLabel("Reading in progress")
+
+                Image("crystal_ball_small")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 110)
+                    .opacity(pulse ? 1.0 : 0.75)
+                    .accessibilityHidden(true)
+
+                ArtCard(contentPadding: 14) {
+                    VStack(spacing: 8) {
+                        Text("This may take a few seconds.")
+                            .font(Typography.bodyText)
+                            .foregroundStyle(Theme.goldLight)
+                        Sparkle(size: 10)
+                        // §6.1 privacy line for this screen.
+                        Text("We delete your photo as soon as this finishes.")
+                            .font(Typography.fine)
+                            .foregroundStyle(Theme.goldLight.opacity(0.7))
+                    }
+                }
+                .padding(.horizontal, 30)
+                .frame(maxWidth: 480)
+            }
+            .padding(.bottom, 20)
+            .frame(maxWidth: .infinity)
         }
+        .boothBackground()
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden()
         .task { await analyze() }
         .onAppear {
             guard !reduceMotion else { return }
