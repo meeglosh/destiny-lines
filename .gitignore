@@ -36,3 +36,6 @@ supabase/.temp/
 
 # Node (edge function tooling, if used)
 node_modules/
+
+# Calibration set — photographs of people's hands. Never commit these (§6.2a).
+calibration/

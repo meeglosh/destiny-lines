@@ -7,12 +7,13 @@
 
 import { adminClient, json, userFromRequest } from "../_shared/auth.ts";
 import { deleteR2Object, presignR2, r2ConfigFromEnv } from "../_shared/r2.ts";
+import { GATE3_MODEL, GATE3_PROMPT, GATE3_SCHEMA } from "../_shared/gate3.ts";
+import { GATE3_CONFIDENCE_THRESHOLD } from "../_shared/thresholds.ts";
 
 // ------------------------------------------------------------------ constants
 
 // One constant, per §7.1. Bake-off pending (owner item) before launch.
 const READING_MODEL = "gpt-5.4-mini";
-const CLASSIFIER_MODEL = "gpt-5.4-nano";
 
 // $/1M tokens, kept in-function so historical usage_events rows stay accurate
 // when prices change (§7.5). Update alongside model changes.
@@ -21,9 +22,8 @@ const RATES: Record<string, { input: number; cachedInput: number; output: number
   "gpt-5.4-nano": { input: 0.20, cachedInput: 0.02, output: 1.25 },
 };
 
-// Gate 3 confidence threshold. PROVISIONAL pending the §6.2a calibration run —
-// Gate 3 is deliberately the strict gate (a false positive means a nonsense reading).
-const GATE3_CONFIDENCE_THRESHOLD = 0.75;
+// Gate 3's model, prompt, schema and threshold live in _shared/ so the offline
+// calibration harness measures exactly what production runs (§6.2a).
 
 // Fair-use ceiling (§7.5).
 const MONTHLY_PREMIUM_CEILING = 150;
@@ -187,34 +187,14 @@ Deno.serve(async (req) => {
 
     // ---- GATE 3: cheap palm classifier (§6.2).
     const gate3 = await openai("/chat/completions", {
-      model: CLASSIFIER_MODEL,
+      model: GATE3_MODEL,
       max_completion_tokens: 100,
       response_format: {
         type: "json_schema",
-        json_schema: {
-          name: "palm_check",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            required: ["is_palm", "confidence", "reason"],
-            properties: {
-              is_palm: { type: "boolean" },
-              confidence: { type: "number" },
-              reason: {
-                type: "string",
-                enum: ["no_hand", "back_of_hand", "too_dark", "too_blurry", "partial", "ok"],
-              },
-            },
-          },
-        },
+        json_schema: { name: "palm_check", strict: true, schema: GATE3_SCHEMA },
       },
       messages: [
-        {
-          role: "system",
-          content:
-            "Decide if the image is a clear photo of a human PALM (palmar side, lines visible). Backs of hands are not palms.",
-        },
+        { role: "system", content: GATE3_PROMPT },
         {
           role: "user",
           content: [{ type: "image_url", image_url: { url: imageURL, detail: "low" } }],
@@ -222,7 +202,7 @@ Deno.serve(async (req) => {
       ],
     });
 
-    logUsage(db, user.id, CLASSIFIER_MODEL, tier, gate3.usage);
+    logUsage(db, user.id, GATE3_MODEL, tier, gate3.usage);
     const verdict = JSON.parse(gate3.choices[0].message.content);
 
     if (!verdict.is_palm || verdict.confidence < GATE3_CONFIDENCE_THRESHOLD) {

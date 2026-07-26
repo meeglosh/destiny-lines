@@ -1,0 +1,9 @@
+filename,label,reason,skin_tone,lighting,notes
+palm_001.jpg,palm,ok,type_ii,indoor_dim,
+palm_002.jpg,palm,ok,type_vi,hard_sun,ring on index finger
+palm_003.jpg,palm,ok,type_iv,outdoor_shade,slight motion blur
+dorsum_001.jpg,not_palm,back_of_hand,type_iii,indoor,
+cat_001.jpg,not_palm,no_hand,,indoor,
+face_001.jpg,not_palm,no_hand,type_v,indoor,
+dark_001.jpg,not_palm,too_dark,type_ii,unlit_room,
+partial_001.jpg,not_palm,partial,type_i,indoor,only three fingers visible
