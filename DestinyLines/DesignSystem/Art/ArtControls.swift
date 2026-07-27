@@ -234,6 +234,8 @@ struct ArtNavBar: View {
             let itemWidth = proxy.size.width / CGFloat(items.count)
             let plateWidth = itemWidth * 0.84
             let plateHeight = plateWidth / (174.0 / 109.0)
+            // Clear space above the plate so the bar doesn't crowd the screen above it.
+            let topInset: CGFloat = 16
 
             ZStack(alignment: .top) {
                 // Active plate, sliding to the chosen item.
@@ -242,7 +244,7 @@ struct ArtNavBar: View {
                     .frame(width: plateWidth, height: plateHeight)
                     .offset(
                         x: itemWidth * (CGFloat(selectedIndex) - CGFloat(items.count - 1) / 2),
-                        y: 3
+                        y: topInset
                     )
                     .animation(.spring(response: 0.34, dampingFraction: 0.78), value: selectedIndex)
                     .allowsHitTesting(false)
@@ -267,7 +269,7 @@ struct ArtNavBar: View {
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.55)
                             }
-                            .padding(.top, plateHeight * 0.145)
+                            .padding(.top, topInset + plateHeight * 0.145)
                             .frame(width: itemWidth, height: proxy.size.height, alignment: .top)
                             .contentShape(Rectangle())
                         }
@@ -280,7 +282,7 @@ struct ArtNavBar: View {
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
             .background(navBackdrop)
         }
-        .frame(height: 76)
+        .frame(height: 80)
     }
 
     /// Dark strip beneath a warm hairline, echoing the mockup's bar.
