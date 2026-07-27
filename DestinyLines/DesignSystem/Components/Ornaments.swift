@@ -72,6 +72,29 @@ struct IconMedallion: View {
     }
 }
 
+/// A glyph seated in a well that the artwork already paints — so only the icon is drawn,
+/// with no ring of its own to double up on the painted one.
+struct WellButton: View {
+    let systemName: String
+    let label: String
+    var size: CGFloat = 22
+    var glowing = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: size, weight: .medium))
+                .foregroundStyle(Theme.goldBevel)
+                .shadow(color: Theme.glow.opacity(glowing ? 0.5 : 0), radius: size * 0.25)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Circle())
+        }
+        .buttonStyle(ArtPressStyle())
+        .accessibilityLabel(label)
+    }
+}
+
 /// Circular back control used on flow screens.
 struct BackButton: View {
     let action: () -> Void

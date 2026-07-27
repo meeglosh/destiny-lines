@@ -44,7 +44,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines
         PRODUCT_NAME: DestinyLines
         MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "10"
+        CURRENT_PROJECT_VERSION: "11"
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
         DEVELOPMENT_TEAM: 7K9WY5T49S

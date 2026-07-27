@@ -207,12 +207,17 @@ struct ArtNavBar: View {
 
     /// Icon centres measured across the bar art's width.
     private let slots: [(tab: MainTab, x: CGFloat, label: String)] = [
-        (.home,     0.159, "Home"),
-        (.read,     0.313, "Read"),
-        (.history,  0.499, "History"),
-        (.insights, 0.666, "Insights"),
-        (.settings, 0.834, "Settings"),
+        (.home,     0.155, "HOME"),
+        (.read,     0.325, "READ"),
+        (.history,  0.475, "HISTORY"),
+        (.insights, 0.655, "INSIGHTS"),
+        (.settings, 0.825, "SETTINGS"),
     ]
+
+    /// The painted icons sit in the bar's upper third; labels go beneath them, clear of
+    /// the centre item's plate.
+    private let iconCentreY: CGFloat = 0.25
+    private let labelCentreY: CGFloat = 0.80
 
     var body: some View {
         Image("nav_bar")
@@ -220,38 +225,49 @@ struct ArtNavBar: View {
             .scaledToFit()
             .overlay(
                 GeometryReader { proxy in
+                    let w = proxy.size.width * 0.19
+                    let h = proxy.size.height
+
                     ZStack(alignment: .topLeading) {
                         ForEach(slots, id: \.tab) { slot in
                             let isSelected = slot.tab == selection
-                            let w = proxy.size.width * 0.19
-                            let h = proxy.size.height
 
                             Button {
                                 if slot.tab == .read { onRead() } else { selection = slot.tab }
                             } label: {
-                                ZStack {
-                                    // Selection is drawn as a warm halo behind the painted
-                                    // icon, so it lights up in place without hiding the art.
+                                ZStack(alignment: .top) {
+                                    // Selection is a soft warm halo behind the painted
+                                    // icon: enough to read as lit, not enough to wash the
+                                    // artwork out. Centred on the icon, not the button.
                                     if isSelected {
                                         Circle()
                                             .fill(
                                                 RadialGradient(
-                                                    colors: [Theme.glow.opacity(0.55), .clear],
+                                                    colors: [Theme.glow.opacity(0.20), .clear],
                                                     center: .center,
                                                     startRadius: 1,
-                                                    endRadius: h * 0.30
+                                                    endRadius: h * 0.22
                                                 )
                                             )
-                                            .frame(width: h * 0.62, height: h * 0.62)
-                                            .offset(y: -h * 0.06)
+                                            .frame(width: h * 0.46, height: h * 0.46)
+                                            .offset(y: h * iconCentreY - h * 0.24)
                                     }
+
+                                    Text(slot.label)
+                                        .font(.custom("Rye-Regular", size: h * 0.115))
+                                        .kerning(0.4)
+                                        .foregroundStyle(isSelected ? Theme.gold : Theme.goldDark)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.6)
+                                        .offset(y: h * labelCentreY - h * 0.06)
+
                                     Color.clear.contentShape(Rectangle())
                                 }
                                 .frame(width: w, height: h)
                             }
                             .buttonStyle(.plain)
                             .offset(x: proxy.size.width * slot.x - w / 2)
-                            .accessibilityLabel(slot.label)
+                            .accessibilityLabel(slot.label.capitalized)
                             .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [.isButton])
                         }
                     }

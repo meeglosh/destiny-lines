@@ -56,6 +56,15 @@ enum ArtLayout {
             height: height
         )
     }
+
+    /// Scale to the box's width and pin to its top, leaving whatever is left over at the
+    /// foot. Used where the artwork is short enough that the nav bar can sit beneath it
+    /// rather than over it — nothing is cropped and nothing needs to scroll.
+    static func widthFittedFrame(for image: String, in box: CGRect) -> CGRect {
+        let size = artSize(image)
+        let scale = box.width / size.width
+        return CGRect(x: box.minX, y: box.minY, width: box.width, height: size.height * scale)
+    }
 }
 
 // MARK: - Screen
@@ -74,13 +83,18 @@ struct ArtScreen<Overlay: View>: View {
     var scrollable = false
     /// Extra room reserved at the foot of the scroll, so the nav bar never covers content.
     var bottomInset: CGFloat = 0
+    /// Scale the artwork to the screen's width and pin it to the top instead of filling.
+    /// Used for backgrounds short enough to leave the nav bar its own room.
+    var fitsWidth = false
     @ViewBuilder var overlay: (ArtGeometry) -> Overlay
 
     var body: some View {
         GeometryReader { proxy in
             let box = CGRect(origin: .zero, size: proxy.size)
             let art = ArtGeometry(
-                frame: ArtLayout.fillingFrame(for: image, in: box, verticalAnchor: verticalAnchor)
+                frame: fitsWidth
+                    ? ArtLayout.widthFittedFrame(for: image, in: box)
+                    : ArtLayout.fillingFrame(for: image, in: box, verticalAnchor: verticalAnchor)
             )
 
             let content = ZStack(alignment: .topLeading) {
