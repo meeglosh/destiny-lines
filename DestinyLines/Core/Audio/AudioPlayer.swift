@@ -61,11 +61,25 @@ final class AudioPlayer {
         }
     }
 
+    /// True while a screen with its own soundtrack (the analyzing clip) is showing.
+    private var suspendedForVideo = false
+
+    /// Duck out for a screen that plays its own audio, so the two don't fight.
+    func pauseForVideo() {
+        suspendedForVideo = true
+        player?.pause()
+    }
+
+    func resumeAfterVideo() {
+        suspendedForVideo = false
+        if !isMuted { player?.play() }
+    }
+
     /// Called when the app leaves/returns to the foreground.
     func handleScenePhase(_ phase: ScenePhase) {
         switch phase {
         case .active:
-            if !isMuted { player?.play() }
+            if !isMuted, !suspendedForVideo { player?.play() }
         case .inactive, .background:
             player?.pause()
         @unknown default:

@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Testing
 import UIKit
@@ -60,5 +61,24 @@ struct ArtAssetTests {
             an image-processing step; regenerate the asset preserving RGBA.
             """
         )
+    }
+
+    /// The analyzing interstitial is a bundled clip with its own soundtrack; the screen
+    /// waits for it to finish before advancing, so a missing file would strand the user.
+    @Test func analyzingClipIsBundledWithAudio() async throws {
+        let url = try #require(
+            Bundle.main.url(forResource: "analyzing_halo", withExtension: "mp4"),
+            "analyzing_halo.mp4 missing from the bundle"
+        )
+        let asset = AVURLAsset(url: url)
+
+        let duration = try await asset.load(.duration).seconds
+        #expect(duration > 9 && duration < 11, "Clip should be ~10s, got \(duration)")
+
+        let audio = try await asset.loadTracks(withMediaType: .audio)
+        #expect(!audio.isEmpty, "Clip has no audio track — the interstitial should play sound")
+
+        let video = try await asset.loadTracks(withMediaType: .video)
+        #expect(!video.isEmpty, "Clip has no video track")
     }
 }

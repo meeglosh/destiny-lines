@@ -125,27 +125,35 @@ final class MuteButtonTests: XCTestCase {
         app.launch()
         RunLoop.current.run(until: Date().addingTimeInterval(3))
 
-        // Starts unmuted on a fresh install.
+        // The preference persists, so a previous run may have left it either way;
+        // assert on the transition rather than on a presumed starting state.
         let soundOn = app.buttons["Sound on"]
-        XCTAssertTrue(soundOn.waitForExistence(timeout: 5), "Sound toggle missing from Home")
-        XCTAssertTrue(soundOn.isHittable, "Sound toggle is not hittable")
-
-        soundOn.tap()
+        let soundOff = app.buttons["Sound off"]
         XCTAssertTrue(
-            app.buttons["Sound off"].waitForExistence(timeout: 3),
-            "Tapping the toggle did not switch to the muted state"
+            soundOn.waitForExistence(timeout: 5) || soundOff.waitForExistence(timeout: 1),
+            "Sound toggle missing from Home"
+        )
+        let startsMuted = soundOff.exists
+        let initial = startsMuted ? soundOff : soundOn
+        let flipped = startsMuted ? soundOn : soundOff
+
+        XCTAssertTrue(initial.isHittable, "Sound toggle is not hittable")
+        initial.tap()
+        XCTAssertTrue(
+            flipped.waitForExistence(timeout: 3),
+            "Tapping the toggle did not flip the sound state"
         )
 
-        // The mute choice survives a relaunch.
+        // The choice survives a relaunch.
         app.terminate()
         app.launch()
         RunLoop.current.run(until: Date().addingTimeInterval(3))
         XCTAssertTrue(
-            app.buttons["Sound off"].waitForExistence(timeout: 5),
-            "Mute preference did not persist across launches"
+            flipped.waitForExistence(timeout: 5),
+            "Sound preference did not persist across launches"
         )
 
-        // Restore for later runs.
-        app.buttons["Sound off"].tap()
+        // Restore the original state for later runs.
+        flipped.tap()
     }
 }
