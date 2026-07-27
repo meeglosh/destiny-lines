@@ -2,9 +2,9 @@ import AVFoundation
 import SwiftUI
 import UIKit
 
-/// Align, rebuilt from components: live camera inside the sliced ornate card frame,
-/// the comp's glowing hand-guide overlay (bright art on transparency) on top, tips
-/// card, and the CONTINUE plate. No more full-screen alpha-hole art.
+/// DL-align-hand-camera.png used directly. The viewfinder interior of the art has been
+/// made luminance-transparent, so the live camera feed shows through the dark glass
+/// while the baked glowing hand guide, crosshairs, and brackets stay on top.
 struct AlignHandView: View {
     let source: AppState.CaptureSource
 
@@ -14,89 +14,65 @@ struct AlignHandView: View {
     @State private var camera = CameraController()
     @State private var submission = PalmSubmission()
 
+    /// Viewfinder interior in art-normalized coordinates (matches the alpha hole).
+    private let viewfinder = (x: 0.140, y: 0.276, w: 0.722, h: 0.449)
+
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 14) {
-                FlowHeader(title: "ALIGN YOUR HAND") { dismiss() }
-                    .padding(.top, 4)
+        GeometryReader { proxy in
+            let container = ArtLayout.container(proxy)
+            let art = ArtGeometry(frame: ArtLayout.fittedFrame(for: "bg_align", in: container))
+            let holeRect = art.rect(viewfinder.x, viewfinder.y, viewfinder.w, viewfinder.h)
 
-                Text("Center your hand and adjust to fit the guide.")
-                    .font(Typography.bodyEmphasis)
-                    .foregroundStyle(Theme.goldLight)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 30)
+            ZStack(alignment: .topLeading) {
+                Theme.background
+                    .frame(width: container.width, height: container.height)
+                    .offset(x: container.minX, y: container.minY)
 
-                viewfinder
-                    .padding(.horizontal, 22)
-
-                ArtCard(contentPadding: 12) {
-                    HStack(spacing: 12) {
-                        IconMedallion(systemName: "lightbulb.fill", diameter: 40)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("TIPS FOR BEST RESULTS")
-                                .font(Typography.displaySmall)
-                                .foregroundStyle(Theme.gold)
-                            Text("Use good lighting and a clear background.")
-                                .font(Typography.caption)
-                                .foregroundStyle(Theme.goldLight)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                // Live camera behind the art's transparent viewfinder.
+                if camera.isRunning, let session = camera.session {
+                    CameraPreview(session: session)
+                        .artFrame(holeRect)
+                } else {
+                    Rectangle()
+                        .fill(Color.black)
+                        .artFrame(holeRect)
                 }
-                .padding(.horizontal, 22)
 
-                ArtPlateButton(style: .crimson, text: "CONTINUE", enabled: camera.isRunning) {
+                Image("bg_align")
+                    .resizable()
+                    .artFrame(art.frame)
+                    .allowsHitTesting(false)
+
+                if camera.isDenied {
+                    Text("Camera access is off.\nEnable it in Settings to take a photo.")
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.goldLight)
+                        .multilineTextAlignment(.center)
+                        .artFrame(holeRect)
+                }
+
+                ArtHotspot(rect: art.rect(0.02, 0.02, 0.14, 0.05), label: "Back",
+                           debug: ArtDebug.showHotspots) {
+                    dismiss()
+                }
+
+                // CONTINUE plate
+                ArtHotspot(rect: art.rect(0.13, 0.872, 0.74, 0.075), label: "Continue. Takes the photo.",
+                           debug: ArtDebug.showHotspots) {
                     Task { await captureAndSubmit() }
                 }
-                .padding(.horizontal, 26)
-                .frame(maxWidth: 480)
+
+                if submission.state != .idle {
+                    WorkingVeil(text: submission.state == .checking
+                                ? "Looking for your hand..."
+                                : "Sending to the spirits...")
+                }
             }
-            .padding(.bottom, 20)
-            .frame(maxWidth: .infinity)
         }
-        .boothBackground()
+        .preferredColorScheme(.dark)
         .toolbar(.hidden, for: .navigationBar)
         .task { await camera.start() }
         .onDisappear { camera.stop() }
-        .overlay {
-            if submission.state != .idle {
-                WorkingVeil(text: submission.state == .checking
-                            ? "Looking for your hand..."
-                            : "Sending to the spirits...")
-            }
-        }
-    }
-
-    private var viewfinder: some View {
-        ArtCard(contentPadding: 8) {
-            ZStack {
-                if camera.isRunning, let session = camera.session {
-                    CameraPreview(session: session)
-                } else {
-                    Rectangle().fill(Color.black.opacity(0.75))
-                    if camera.isDenied {
-                        Text("Camera access is off.\nEnable it in Settings to take a photo.")
-                            .font(Typography.caption)
-                            .foregroundStyle(Theme.goldLight)
-                            .multilineTextAlignment(.center)
-                            .padding(20)
-                    } else {
-                        ProgressView().tint(Theme.gold)
-                    }
-                }
-
-                // The comp's glowing hand guide, crosshairs and brackets — bright art
-                // on transparency, so the feed shows through around it.
-                Image("hand_guide")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(10)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
-            .aspectRatio(0.74, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
     }
 
     private func captureAndSubmit() async {

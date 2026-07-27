@@ -1,108 +1,66 @@
 import SwiftUI
 
-/// Home, rebuilt from sliced components: arch + wordmark hero, the big hand medallion,
-/// live-caption plate, and the NEW READING marquee CTA. Navigation lives in the global
-/// tab bar, so the old menu rows are gone; the sound toggle floats top-leading.
+/// DL-main-menu.png used directly. Everything visual is baked into the art; this view
+/// adds tap targets over the baked controls and the live readings-count badge.
 struct HomeView: View {
     @Environment(AppState.self) private var appState
+    @Environment(ReadingStore.self) private var readingStore
     @Environment(AudioPlayer.self) private var audio
 
     var body: some View {
-        GeometryReader { proxy in
-            let compact = proxy.size.height < 700
-
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: compact ? 10 : 16) {
-                    Image("arch_wordmark")
-                        .resizable()
-                        .scaledToFit()
-                        .accessibilityLabel("Destiny Lines. Your future is in your hands.")
-
-                    Image("hand_medallion_big")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: min(proxy.size.width * 0.82, 420))
-                        .accessibilityHidden(true)
-
-                    CaptionPlate(text: "ANALYZE YOUR PALM.  DISCOVER YOUR DESTINY.")
-                        .frame(maxWidth: 340)
-                        .padding(.horizontal, 40)
-
-                    ArtPlateButton(style: .marqueeRed, text: "NEW READING") {
-                        appState.navigate(.capture)
-                    }
-                    .padding(.horizontal, 28)
-                    .frame(maxWidth: 460)
-
-                    footer
-                        .padding(.top, compact ? 2 : 8)
-                }
-                .padding(.top, 4)
-                .padding(.bottom, 12)
-                .frame(maxWidth: .infinity)
+        ArtScreen(image: "bg_home") { art in
+            // The comp's two top medallions were decorative; they've been erased from the
+            // art and replaced with these working controls in the same style and place.
+            MuteButton(isMuted: audio.isMuted) {
+                audio.toggleMute()
             }
-            .overlay(alignment: .topLeading) {
-                MuteButton(isMuted: audio.isMuted) {
-                    audio.toggleMute()
-                }
-                .frame(width: 44, height: 44)
-                .padding(.leading, 14)
-                .padding(.top, 2)
+            .artFrame(art.rect(0.052, 0.048, 0.115, 0.056))
+
+            ArtMedallionButton(systemName: "gearshape.fill", label: "Settings") {
+                appState.navigate(.settings)
             }
-        }
-        .boothBackground()
-    }
+            .artFrame(art.rect(0.840, 0.048, 0.115, 0.056))
 
-    private var footer: some View {
-        HStack(spacing: 12) {
-            Text("TRUST THE SIGNS.")
-            Image("crystal_ball_footer")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 56)
-                .accessibilityHidden(true)
-            Text("FOLLOW YOUR PATH.")
-        }
-        .font(.custom("Rye-Regular", size: 11))
-        .kerning(1)
-        .foregroundStyle(Theme.gold.opacity(0.85))
-        .padding(.horizontal, 24)
-    }
-}
+            // NEW READING marquee plate
+            ArtHotspot(
+                rect: art.rect(0.12, 0.560, 0.76, 0.098),
+                label: "New Reading",
+                debug: ArtDebug.showHotspots
+            ) {
+                appState.navigate(.capture)
+            }
 
-/// INSIGHTS tab placeholder (owner decision: visible with a gentle note, not a dead end).
-struct InsightsView: View {
-    var body: some View {
-        VStack(spacing: 18) {
-            RibbonBanner(text: "INSIGHTS")
-                .padding(.horizontal, 70)
-                .padding(.top, 8)
+            // MY READINGS row
+            ArtHotspot(
+                rect: art.rect(0.09, 0.685, 0.82, 0.068),
+                label: "My Readings. View your past readings.",
+                debug: ArtDebug.showHotspots
+            ) {
+                appState.navigate(.history)
+            }
 
-            Spacer()
-
-            Image("crystal_ball_small")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 150)
-                .accessibilityHidden(true)
-
-            ArtCard {
-                VStack(spacing: 8) {
-                    Text("THE STARS ARE STILL ALIGNING")
-                        .font(Typography.displaySmall)
-                        .kerning(1.5)
-                        .foregroundStyle(Theme.gold)
-                    Text("Insights from your readings will gather here in a future version.")
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.goldLight.opacity(0.85))
-                        .multilineTextAlignment(.center)
+            // SHARE row
+            ArtHotspot(
+                rect: art.rect(0.09, 0.762, 0.82, 0.062),
+                label: "Share your reading",
+                debug: ArtDebug.showHotspots
+            ) {
+                if let latest = readingStore.readings.first {
+                    appState.navigate(.share(latest))
+                } else {
+                    appState.navigate(.capture)
                 }
             }
-            .padding(.horizontal, 32)
 
-            Spacer()
-            Spacer()
+            // SETTINGS row
+            ArtHotspot(
+                rect: art.rect(0.09, 0.832, 0.82, 0.062),
+                label: "Settings. Customize your experience.",
+                debug: ArtDebug.showHotspots
+            ) {
+                appState.navigate(.settings)
+            }
+
         }
-        .boothBackground()
     }
 }

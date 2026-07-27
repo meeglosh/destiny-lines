@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Hosts the splash, then the main shell (tabbed top-level screens + global tab bar),
-/// with flow screens pushed over it.
+/// Hosts the splash, then the navigation stack for the whole app.
 struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(ReadingStore.self) private var readingStore
@@ -20,7 +19,7 @@ struct RootView: View {
                     SplashView { beginTransitionToHome() }
                 case .ready, .offline:
                     NavigationStack(path: $appState.path) {
-                        MainShell()
+                        HomeView()
                             .navigationDestination(for: AppState.Route.self) { route in
                                 destination(for: route)
                             }
@@ -98,21 +97,17 @@ struct RootView: View {
         )
 
         switch route {
-        case "home": appState.tab = .home
-        case "history": appState.tab = .history
-        case "insights": appState.tab = .insights
-        case "settings": appState.tab = .settings
+        case "home": break // phase is already .ready; Home is the stack root
         case "capture": appState.navigate(.capture)
         case "align": appState.navigate(.align(source: .camera))
         case "analyzing": appState.navigate(.analyzing(objectKey: "debug"))
         case "rejection": appState.navigate(.rejection(.tooDark))
-        case "reading", "reading-indepth", "reading-lines", "reading-detail", "share":
+        case "reading", "reading-indepth", "reading-lines", "reading-detail", "history", "share":
             if readingStore.readings.isEmpty { readingStore.add(sample) }
             if route.hasPrefix("reading") { appState.navigate(.reading(sample)) }
+            if route == "history" { appState.navigate(.history) }
             if route == "share" { appState.navigate(.share(sample)) }
-        case "history-seeded":
-            if readingStore.readings.isEmpty { readingStore.add(sample) }
-            appState.tab = .history
+        case "settings": appState.navigate(.settings)
         case "paywall": appState.showPaywall = true
         default: break
         }
@@ -132,37 +127,14 @@ struct RootView: View {
             RejectionView(reason: reason)
         case .reading(let reading):
             ReadingView(reading: reading)
+        case .history:
+            HistoryView()
         case .share(let reading):
             ShareReadingView(reading: reading)
+        case .settings:
+            SettingsView()
         case .privacyExplainer:
             PrivacyExplainerView()
         }
-    }
-}
-
-/// Top-level shell: the selected tab's screen above the global ArtTabBar.
-struct MainShell: View {
-    @Environment(AppState.self) private var appState
-
-    var body: some View {
-        @Bindable var appState = appState
-
-        VStack(spacing: 0) {
-            Group {
-                switch appState.tab {
-                case .home: HomeView()
-                case .history: HistoryView()
-                case .insights: InsightsView()
-                case .settings: SettingsView()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            ArtTabBar(selection: $appState.tab) {
-                appState.navigate(.capture)
-            }
-        }
-        .boothBackground(flourishes: false)
-        .toolbar(.hidden, for: .navigationBar)
     }
 }

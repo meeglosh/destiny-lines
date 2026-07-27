@@ -1,12 +1,13 @@
 import StoreKit
 import SwiftUI
 
-/// Settings tab: restore purchases, manage subscription, "Your Privacy" explainer row,
-/// policy/terms, delete account — plus the entertainment disclaimer.
+/// §9.10: restore purchases, manage subscription, "Your Privacy" explainer row,
+/// policy/terms, delete account, contact — plus the entertainment disclaimer.
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
     @Environment(ReadingStore.self) private var readingStore
     @Environment(StoreManager.self) private var store
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
     @State private var isRestoring = false
@@ -15,70 +16,67 @@ struct SettingsView: View {
     @State private var deleteFailed = false
 
     var body: some View {
-        VStack(spacing: 12) {
-            RibbonBanner(text: "SETTINGS")
-                .padding(.horizontal, 80)
-                .padding(.top, 8)
+        ScrollView {
+            VStack(spacing: 16) {
+                BannerHeader(title: "SETTINGS")
+                    .padding(.horizontal, 80)
 
-            ScrollView(showsIndicators: false) {
                 VStack(spacing: Theme.cardSpacing) {
-                    ArtListRow(
-                        medallion: .symbol("arrow.clockwise"),
+                    ListRow(
+                        icon: "arrow.clockwise",
                         title: "RESTORE PURCHASES",
                         subtitle: isRestoring ? "Restoring..." : "Recover an existing subscription"
                     ) {
                         Task { await restore() }
                     }
 
-                    ArtListRow(medallion: .symbol("crown.fill"), title: "MANAGE SUBSCRIPTION",
-                               subtitle: "Change or cancel your plan") {
+                    ListRow(icon: "crown.fill", title: "MANAGE SUBSCRIPTION", subtitle: "Change or cancel your plan") {
                         openURL(URL(string: "https://apps.apple.com/account/subscriptions")!)
                     }
 
                     // §6.1 — the dedicated privacy row.
-                    ArtListRow(medallion: .symbol("lock.shield.fill"), title: "YOUR PRIVACY",
-                               subtitle: "How we handle your photo") {
+                    ListRow(icon: "lock.shield.fill", title: "YOUR PRIVACY", subtitle: "How we handle your photo") {
                         appState.navigate(.privacyExplainer)
                     }
 
-                    ArtListRow(medallion: .symbol("doc.text.fill"), title: "PRIVACY POLICY",
-                               subtitle: "The full policy") {
+                    ListRow(icon: "doc.text.fill", title: "PRIVACY POLICY", subtitle: "The full policy") {
                         openURL(URL(string: "https://destinylines.app/privacy")!)
                     }
 
-                    ArtListRow(medallion: .symbol("doc.plaintext.fill"), title: "TERMS OF USE",
-                               subtitle: "The rules of the road") {
+                    ListRow(icon: "doc.plaintext.fill", title: "TERMS OF USE", subtitle: "The rules of the road") {
                         openURL(URL(string: "https://destinylines.app/terms")!)
                     }
 
-                    ArtListRow(medallion: .symbol("envelope.fill"), title: "CONTACT",
-                               subtitle: "Reach the keepers of the booth") {
+                    ListRow(icon: "envelope.fill", title: "CONTACT", subtitle: "Reach the keepers of the booth") {
                         openURL(URL(string: "mailto:support@destinylines.app")!)
                     }
 
-                    ArtListRow(medallion: .symbol("trash.fill"), title: "DELETE ACCOUNT",
-                               subtitle: "Remove your data for good") {
+                    ListRow(icon: "trash.fill", title: "DELETE ACCOUNT", subtitle: "Remove your data for good") {
                         confirmDelete = true
                     }
-
-                    OrnamentDivider()
-                        .padding(.horizontal, 40)
-
-                    // Required disclaimer placement (§9).
-                    Text("Destiny Lines is for entertainment purposes only. Readings are not medical, psychological, financial, or legal advice.")
-                        .font(Typography.fine)
-                        .foregroundStyle(Theme.goldLight.opacity(0.65))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 12)
                 }
-                .padding(.horizontal, 22)
-                .padding(.vertical, 6)
-                .frame(maxWidth: 560)
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
+
+                OrnamentDivider()
+                    .padding(.horizontal, 60)
+
+                // Required disclaimer placement (§9).
+                Text("Destiny Lines is for entertainment purposes only. Readings are not medical, psychological, financial, or legal advice.")
+                    .font(Typography.fine)
+                    .foregroundStyle(Theme.goldLight.opacity(0.65))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 36)
+                    .padding(.bottom, 24)
+            }
+            .padding(.vertical, 10)
+        }
+        .screenBackground()
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                BackButton { dismiss() }
             }
         }
-        .boothBackground()
         .alert("Restore Purchases", isPresented: Binding(get: { restoreMessage != nil }, set: { _ in restoreMessage = nil })) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -112,7 +110,6 @@ struct SettingsView: View {
         do {
             try await SupabaseService.shared.deleteAccount()
             readingStore.removeAll()
-            appState.tab = .home
             appState.phase = .launching
             appState.popToRoot()
         } catch {
@@ -127,12 +124,12 @@ struct PrivacyExplainerView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
+        ScrollView {
             VStack(spacing: 16) {
-                FlowHeader(title: "YOUR PRIVACY") { dismiss() }
-                    .padding(.top, 4)
+                BannerHeader(title: "YOUR PRIVACY")
+                    .padding(.horizontal, 64)
 
-                ArtCard {
+                OrnateCard {
                     VStack(alignment: .leading, spacing: 14) {
                         privacyPoint(
                             icon: "timer",
@@ -156,18 +153,22 @@ struct PrivacyExplainerView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 22)
-                .frame(maxWidth: 560)
+                .padding(.horizontal, 24)
 
                 Text("The full privacy policy names every processor and retention window.")
                     .font(Typography.fine)
                     .foregroundStyle(Theme.goldLight.opacity(0.7))
                     .padding(.bottom, 24)
             }
-            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
         }
-        .boothBackground()
-        .toolbar(.hidden, for: .navigationBar)
+        .screenBackground()
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                BackButton { dismiss() }
+            }
+        }
     }
 
     private func privacyPoint(icon: String, title: String, body text: String) -> some View {
