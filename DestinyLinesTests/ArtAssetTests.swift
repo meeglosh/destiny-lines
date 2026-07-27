@@ -58,7 +58,7 @@ struct ArtAssetTests {
             "bg_history", "bg_history_list", "bg_share", "bg_paywall", "bg_frame",
             // Components
             "btn_ornate", "btn_primary", "btn_primary_alt", "btn_secondary", "btn_tertiary",
-            "nav_bar", "hand_guide",
+            "nav_active", "hand_guide",
             "selector_left", "selector_center", "selector_right",
             "selector_left_selected", "selector_center_selected", "selector_right_selected",
         ]

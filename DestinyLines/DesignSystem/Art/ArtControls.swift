@@ -198,81 +198,173 @@ enum MainTab: Hashable, CaseIterable {
     case home, read, history, insights, settings
 }
 
-/// The bottom navigation bar. The art paints five icons with the centre one seated in
-/// an ornate plate — that plate is permanent centre-item styling, not selection — so the
-/// active tab is signalled with a generated gold glow and lit label instead.
+/// The bottom navigation, rebuilt in code so selection can move.
+///
+/// The bar and its icons are drawn rather than sliced, following the mockup's language:
+/// a dark strip under a gold hairline, an ornate glyph over a small-caps label, and the
+/// bulb-framed plate (the one supplied art here) sliding behind whichever item is active.
 struct ArtNavBar: View {
     @Binding var selection: MainTab
     let onRead: () -> Void
 
-    /// Icon centres measured across the bar art's width.
-    private let slots: [(tab: MainTab, x: CGFloat, label: String)] = [
-        (.home,     0.155, "HOME"),
-        (.read,     0.325, "READ"),
-        (.history,  0.475, "HISTORY"),
-        (.insights, 0.655, "INSIGHTS"),
-        (.settings, 0.825, "SETTINGS"),
+    @Namespace private var plateNamespace
+
+    private struct Item {
+        let tab: MainTab
+        let label: String
+        /// READ is an action rather than a destination, so it never takes the plate.
+        var isAction: Bool { tab == .read }
+    }
+
+    private let items: [Item] = [
+        Item(tab: .home, label: "HOME"),
+        Item(tab: .read, label: "READ"),
+        Item(tab: .history, label: "HISTORY"),
+        Item(tab: .insights, label: "INSIGHTS"),
+        Item(tab: .settings, label: "SETTINGS"),
     ]
 
-    /// The painted icons sit in the bar's upper third; labels go beneath them, clear of
-    /// the centre item's plate.
-    private let iconCentreY: CGFloat = 0.25
-    private let labelCentreY: CGFloat = 0.80
+    /// Index the plate rests on. READ never holds it, so it stays where it was.
+    private var selectedIndex: Int {
+        items.firstIndex { $0.tab == selection } ?? 0
+    }
 
     var body: some View {
-        Image("nav_bar")
-            .resizable()
-            .scaledToFit()
-            .overlay(
-                GeometryReader { proxy in
-                    let w = proxy.size.width * 0.19
-                    let h = proxy.size.height
+        GeometryReader { proxy in
+            let itemWidth = proxy.size.width / CGFloat(items.count)
+            let plateWidth = itemWidth * 0.84
+            let plateHeight = plateWidth / (174.0 / 109.0)
 
-                    ZStack(alignment: .topLeading) {
-                        ForEach(slots, id: \.tab) { slot in
-                            let isSelected = slot.tab == selection
+            ZStack(alignment: .top) {
+                // Active plate, sliding to the chosen item.
+                Image("nav_active")
+                    .resizable()
+                    .frame(width: plateWidth, height: plateHeight)
+                    .offset(
+                        x: itemWidth * (CGFloat(selectedIndex) - CGFloat(items.count - 1) / 2),
+                        y: 3
+                    )
+                    .animation(.spring(response: 0.34, dampingFraction: 0.78), value: selectedIndex)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
 
-                            Button {
-                                if slot.tab == .read { onRead() } else { selection = slot.tab }
-                            } label: {
-                                ZStack(alignment: .top) {
-                                    // Selection is a soft warm halo behind the painted
-                                    // icon: enough to read as lit, not enough to wash the
-                                    // artwork out. Centred on the icon, not the button.
-                                    if isSelected {
-                                        Circle()
-                                            .fill(
-                                                RadialGradient(
-                                                    colors: [Theme.glow.opacity(0.20), .clear],
-                                                    center: .center,
-                                                    startRadius: 1,
-                                                    endRadius: h * 0.22
-                                                )
-                                            )
-                                            .frame(width: h * 0.46, height: h * 0.46)
-                                            .offset(y: h * iconCentreY - h * 0.24)
-                                    }
+                HStack(spacing: 0) {
+                    ForEach(items, id: \.tab) { item in
+                        let isSelected = !item.isAction && item.tab == selection
 
-                                    Text(slot.label)
-                                        .font(.custom("Rye-Regular", size: h * 0.115))
-                                        .kerning(0.4)
-                                        .foregroundStyle(isSelected ? Theme.gold : Theme.goldDark)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.6)
-                                        .offset(y: h * labelCentreY - h * 0.06)
+                        Button {
+                            if item.isAction { onRead() } else { selection = item.tab }
+                        } label: {
+                            VStack(spacing: plateHeight * 0.06) {
+                                NavGlyph(tab: item.tab)
+                                    .frame(width: plateHeight * 0.44, height: plateHeight * 0.44)
+                                    .foregroundStyle(isSelected ? AnyShapeStyle(Theme.goldBevel) : AnyShapeStyle(Theme.gold.opacity(0.72)))
 
-                                    Color.clear.contentShape(Rectangle())
-                                }
-                                .frame(width: w, height: h)
+                                Text(item.label)
+                                    .font(.custom("AlegreyaSans-Bold", size: plateHeight * 0.22))
+                                    .kerning(0.7)
+                                    .foregroundStyle(isSelected ? Theme.goldLight : Theme.gold.opacity(0.62))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.55)
                             }
-                            .buttonStyle(.plain)
-                            .offset(x: proxy.size.width * slot.x - w / 2)
-                            .accessibilityLabel(slot.label.capitalized)
-                            .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [.isButton])
+                            .padding(.top, plateHeight * 0.145)
+                            .frame(width: itemWidth, height: proxy.size.height, alignment: .top)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(NavPressStyle())
+                        .accessibilityLabel(item.label.capitalized)
+                        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [.isButton])
                     }
                 }
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+            .background(navBackdrop)
+        }
+        .frame(height: 76)
+    }
+
+    /// Dark strip beneath a warm hairline, echoing the mockup's bar.
+    private var navBackdrop: some View {
+        ZStack(alignment: .top) {
+            LinearGradient(
+                colors: [
+                    Color(red: 0x14 / 255, green: 0x0D / 255, blue: 0x09 / 255),
+                    Color(red: 0x08 / 255, green: 0x05 / 255, blue: 0x03 / 255),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
             )
-            .accessibilityElement(children: .contain)
+
+            LinearGradient(
+                colors: [.clear, Theme.gold.opacity(0.75), Theme.gold.opacity(0.75), .clear],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(height: 1)
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+}
+
+/// Slight dim on press; the plate itself carries the selected state.
+private struct NavPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+/// Nav glyphs drawn to match the mockup: a compass rose, a palm, an open book, an
+/// eight-point star and a gear.
+private struct NavGlyph: View {
+    let tab: MainTab
+
+    var body: some View {
+        switch tab {
+        case .home:
+            // Compass rose: ring and star both kept inside the frame so the glyph never
+            // overflows the active plate.
+            ZStack {
+                Circle()
+                    .strokeBorder(.foreground, lineWidth: 1.1)
+                    .opacity(0.5)
+                StarBurst(points: 8)
+                    .scaleEffect(0.64)
+            }
+        case .read:
+            Image(systemName: "hand.raised.fill").resizable().scaledToFit()
+        case .history:
+            Image(systemName: "book.fill").resizable().scaledToFit()
+        case .insights:
+            StarBurst(points: 8)
+        case .settings:
+            Image(systemName: "gearshape.fill").resizable().scaledToFit()
+        }
+    }
+}
+
+/// Many-pointed star with concave sides, matching the mockup's ornamental stars.
+struct StarBurst: Shape {
+    var points: Int = 8
+    var innerRatio: CGFloat = 0.34
+
+    func path(in rect: CGRect) -> Path {
+        let centre = CGPoint(x: rect.midX, y: rect.midY)
+        let outer = min(rect.width, rect.height) / 2
+        let inner = outer * innerRatio
+        var path = Path()
+
+        for index in 0..<(points * 2) {
+            let angle = (CGFloat(index) * .pi / CGFloat(points)) - .pi / 2
+            let radius = index.isMultiple(of: 2) ? outer : inner
+            let point = CGPoint(
+                x: centre.x + cos(angle) * radius,
+                y: centre.y + sin(angle) * radius
+            )
+            if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        path.closeSubpath()
+        return path
     }
 }

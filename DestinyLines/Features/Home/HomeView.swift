@@ -37,7 +37,7 @@ struct HomeView: View {
                     appState.navigate(.capture)
                 }
             }
-            .artFrame(art.rect(0.845, 0.068, 0.110, 0.064))
+            .artFrame(art.rect(0.8405, 0.0645, 0.110, 0.064))
 
             // Caption inside the painted black plate (0.628–0.688).
             Text("ANALYZE YOUR PALM.\nDISCOVER YOUR DESTINY.")
@@ -62,7 +62,7 @@ struct HomeView: View {
                     .shadow(color: .black.opacity(0.55), radius: 2, y: 1)
                 Sparkle(size: art.fontSize(0.015))
             }
-            .artFrame(art.rect(0.16, 0.718, 0.68, 0.066))
+            .artFrame(art.rect(0.16, 0.7255, 0.68, 0.066))
             .allowsHitTesting(false)
 
             ArtHotspot(rect: art.rect(0.10, 0.700, 0.80, 0.105), label: "New Reading") {
