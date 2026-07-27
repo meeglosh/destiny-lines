@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// Hosts the splash, then the navigation stack for the whole app.
+/// Splash, then the main shell (tabbed top-level screens with the global nav bar), with
+/// flow screens pushed over it.
 struct RootView: View {
     @Environment(AppState.self) private var appState
     @Environment(ReadingStore.self) private var readingStore
 
-    /// Black curtain used to cross the splash → Home boundary, so the swap is a fade
-    /// through black rather than an abrupt cut.
+    /// Black curtain used to cross the splash → Home boundary as a fade rather than a cut.
     @State private var curtain: Double = 0
 
     var body: some View {
@@ -19,7 +19,7 @@ struct RootView: View {
                     SplashView { beginTransitionToHome() }
                 case .ready, .offline:
                     NavigationStack(path: $appState.path) {
-                        HomeView()
+                        MainShell()
                             .navigationDestination(for: AppState.Route.self) { route in
                                 destination(for: route)
                             }
@@ -39,22 +39,18 @@ struct RootView: View {
         .task { applyDebugRoute() }
     }
 
-    /// Fade to black, swap the splash for Home behind the curtain, then fade back in.
     private func beginTransitionToHome() {
         Task { @MainActor in
             withAnimation(.easeIn(duration: 0.45)) { curtain = 1 }
             try? await Task.sleep(for: .milliseconds(460))
-
             appState.phase = .ready
-            // One beat on black so Home is composited before the curtain lifts.
             try? await Task.sleep(for: .milliseconds(80))
-
             withAnimation(.easeOut(duration: 0.55)) { curtain = 0 }
         }
     }
 
-    /// Screenshot calibration: DEBUG_ROUTE jumps straight to a screen, seeding a
-    /// sample reading when one is needed. Debug builds only.
+    /// Screenshot calibration: DEBUG_ROUTE jumps straight to a screen, seeding a sample
+    /// reading when one is needed. Debug builds only.
     private func applyDebugRoute() {
         #if DEBUG
         guard let route = ProcessInfo.processInfo.environment["DEBUG_ROUTE"] else { return }
@@ -97,17 +93,21 @@ struct RootView: View {
         )
 
         switch route {
-        case "home": break // phase is already .ready; Home is the stack root
+        case "home": appState.tab = .home
+        case "insights": appState.tab = .insights
+        case "settings": appState.tab = .settings
         case "capture": appState.navigate(.capture)
         case "align": appState.navigate(.align(source: .camera))
         case "analyzing": appState.navigate(.analyzing(objectKey: "debug"))
         case "rejection": appState.navigate(.rejection(.tooDark))
-        case "reading", "reading-indepth", "reading-lines", "reading-detail", "history", "share":
+        case "reading", "reading-indepth", "reading-lines", "reading-detail", "share":
             if readingStore.readings.isEmpty { readingStore.add(sample) }
             if route.hasPrefix("reading") { appState.navigate(.reading(sample)) }
-            if route == "history" { appState.navigate(.history) }
             if route == "share" { appState.navigate(.share(sample)) }
-        case "settings": appState.navigate(.settings)
+        case "history":
+            if readingStore.readings.isEmpty { readingStore.add(sample) }
+            appState.tab = .history
+        case "history-empty": appState.tab = .history
         case "paywall": appState.showPaywall = true
         default: break
         }
@@ -117,24 +117,46 @@ struct RootView: View {
     @ViewBuilder
     private func destination(for route: AppState.Route) -> some View {
         switch route {
-        case .capture:
-            CaptureView()
-        case .align(let source):
-            AlignHandView(source: source)
-        case .analyzing(let objectKey):
-            AnalyzingView(objectKey: objectKey)
-        case .rejection(let reason):
-            RejectionView(reason: reason)
-        case .reading(let reading):
-            ReadingView(reading: reading)
-        case .history:
-            HistoryView()
-        case .share(let reading):
-            ShareReadingView(reading: reading)
-        case .settings:
-            SettingsView()
-        case .privacyExplainer:
-            PrivacyExplainerView()
+        case .capture:            CaptureView()
+        case .align(let source):  AlignHandView(source: source)
+        case .analyzing(let key): AnalyzingView(objectKey: key)
+        case .rejection(let r):   RejectionView(reason: r)
+        case .reading(let r):     ReadingView(reading: r)
+        case .share(let r):       ShareReadingView(reading: r)
+        case .privacyExplainer:   PrivacyExplainerView()
         }
+    }
+}
+
+/// Top-level shell: the selected tab's screen with the painted nav bar over its foot.
+struct MainShell: View {
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        @Bindable var appState = appState
+
+        ZStack(alignment: .bottom) {
+            Group {
+                switch appState.tab {
+                case .home:     HomeView()
+                case .history:  HistoryView()
+                case .insights: InsightsView()
+                case .settings: SettingsView()
+                case .read:     HomeView()   // READ pushes the capture flow; never rests here
+                }
+            }
+
+            // The bar art fades to black at its foot, so extending black beneath it
+            // covers the home-indicator strip seamlessly.
+            ArtNavBar(selection: $appState.tab) {
+                appState.navigate(.capture)
+            }
+            .background(
+                Color.black
+                    .frame(maxWidth: .infinity)
+                    .ignoresSafeArea(edges: .bottom)
+            )
+        }
+        .toolbar(.hidden, for: .navigationBar)
     }
 }

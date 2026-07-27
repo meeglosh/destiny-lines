@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import SwiftUI
 
-/// App-wide session, entitlement, and navigation state.
+/// App-wide session, tab, and flow-navigation state.
 @Observable
 @MainActor
 final class AppState {
@@ -16,7 +16,17 @@ final class AppState {
 
     var phase: Phase = .launching
 
-    // MARK: - Navigation
+    // MARK: - Top-level tabs (global nav bar)
+
+    var tab: MainTab = .home {
+        didSet {
+            // READ is an action, not a destination: bounce back so the bar never rests
+            // on it while the capture flow is pushed over the shell.
+            if tab == .read { tab = oldValue == .read ? .home : oldValue }
+        }
+    }
+
+    // MARK: - Flow routes (pushed over the shell; nav bar not shown)
 
     enum Route: Hashable {
         case capture
@@ -24,9 +34,7 @@ final class AppState {
         case analyzing(objectKey: String)
         case rejection(RejectionReason)
         case reading(Reading)
-        case history
         case share(Reading)
-        case settings
         case privacyExplainer
     }
 

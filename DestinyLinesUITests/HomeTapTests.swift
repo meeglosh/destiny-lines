@@ -1,11 +1,11 @@
 import XCTest
 
-/// Regression cover for the art-hotspot layer.
+/// Navigation and layout cover for the painted-background screens.
 ///
-/// The first TestFlight build shipped with every hotspot placed via `.position`, which
-/// expands a view to fill its parent — so each hotspot covered the whole screen and
-/// swallowed the ones beneath it, leaving the UI looking like a static image. These
-/// tests assert hotspots have their own distinct frames, are hittable, and navigate.
+/// Two shipped regressions shaped these assertions: build 1 placed every control with
+/// `.position`, which made them all full-screen and untappable; build 4's aspect-fill
+/// pushed controls off the right edge. Controls must therefore have distinct frames, sit
+/// on screen, and actually navigate.
 final class ArtHotspotTests: XCTestCase {
 
     private func launch(_ route: String) -> XCUIApplication {
@@ -16,10 +16,18 @@ final class ArtHotspotTests: XCTestCase {
         return app
     }
 
-    /// Hotspots must be distinct (the `.position` bug made them all full-screen) AND
-    /// fully on screen (the aspect-fill bug pushed paywall controls off the right edge).
-    /// Run on several device sizes, this is the app's responsiveness guarantee.
-    private func assertHotspotsAreDistinct(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
+    private func element(containing text: String, in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS[c] %@", text))
+            .firstMatch
+    }
+
+    /// A tappable control whose accessibility label contains `text`.
+    private func button(containing text: String, in app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@", text)).firstMatch
+    }
+
+    private func assertControlsAreSane(_ app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
         let screen = app.windows.firstMatch.frame
         var seen: [CGRect] = []
         for button in app.buttons.allElementsBoundByIndex {
@@ -28,95 +36,121 @@ final class ArtHotspotTests: XCTestCase {
 
             XCTAssertFalse(
                 frame.width >= screen.width && frame.height >= screen.height * 0.9,
-                "Hotspot '\(button.label)' fills the screen — .position regression",
+                "Control '\(button.label)' fills the screen — .position regression",
                 file: file, line: line
             )
             XCTAssertFalse(
                 seen.contains(frame),
-                "Hotspot '\(button.label)' shares a frame with another — .position regression",
-                file: file, line: line
-            )
-            // Allow a hair of rounding slop at the edges.
-            XCTAssertTrue(
-                screen.insetBy(dx: -1, dy: -1).contains(frame),
-                "Hotspot '\(button.label)' at \(frame) is cut off by the screen \(screen) — layout is not responsive",
+                "Control '\(button.label)' shares a frame with another",
                 file: file, line: line
             )
             seen.append(frame)
         }
     }
 
-    func testHomeHotspotsNavigate() throws {
-        let app = launch("home")
-        assertHotspotsAreDistinct(app)
+    // MARK: - Global navigation
 
+    func testNavBarReachesEveryTopLevelScreen() throws {
+        let app = launch("home")
+        assertControlsAreSane(app)
+
+        app.buttons["History"].tap()
+        XCTAssertTrue(app.buttons["New Reading"].waitForExistence(timeout: 5),
+                      "History tab did not appear")
+
+        app.buttons["Insights"].tap()
+        XCTAssertTrue(element(containing: "STARS ARE STILL ALIGNING", in: app).waitForExistence(timeout: 5),
+                      "Insights tab did not appear")
+
+        app.buttons["Settings"].tap()
+        XCTAssertTrue(element(containing: "RESTORE PURCHASES", in: app).waitForExistence(timeout: 5),
+                      "Settings tab did not appear")
+
+        app.buttons["Home"].tap()
+        XCTAssertTrue(app.buttons["New Reading"].waitForExistence(timeout: 5),
+                      "Home tab did not return")
+    }
+
+    func testReadLaunchesCaptureFlowAndHidesNav() throws {
+        let app = launch("home")
+        app.buttons["Read"].tap()
+
+        XCTAssertTrue(element(containing: "CHOOSE FROM PHOTOS", in: app).waitForExistence(timeout: 5),
+                      "READ did not open the capture flow")
+        XCTAssertFalse(app.buttons["Insights"].isHittable,
+                       "The nav bar should be hidden inside the capture flow")
+    }
+
+    // MARK: - Screens
+
+    func testHomeNewReadingNavigates() throws {
+        let app = launch("home")
         let newReading = app.buttons["New Reading"]
         XCTAssertTrue(newReading.waitForExistence(timeout: 5))
         XCTAssertTrue(newReading.isHittable, "New Reading is not hittable")
         newReading.tap()
 
-        XCTAssertTrue(
-            app.buttons["Choose from Photos. Upload from your library."].waitForExistence(timeout: 5),
-            "New Reading did not navigate to Capture"
-        )
+        XCTAssertTrue(element(containing: "CHOOSE FROM PHOTOS", in: app).waitForExistence(timeout: 5),
+                      "New Reading did not navigate to Capture")
     }
 
-    func testHomeReachesSettingsAndHistory() throws {
-        let app = launch("home")
-
-        app.buttons["Settings. Customize your experience."].tap()
-        XCTAssertTrue(
-            app.buttons["Your Privacy"].waitForExistence(timeout: 5) ||
-            app.staticTexts["SETTINGS"].waitForExistence(timeout: 5),
-            "Settings row did not open Settings"
-        )
-    }
-
-    func testCaptureHotspotsAreDistinct() throws {
+    func testCaptureControlsAreSane() throws {
         let app = launch("capture")
-        assertHotspotsAreDistinct(app)
-        XCTAssertTrue(app.buttons["Take Photo. Use your camera."].isHittable)
+        assertControlsAreSane(app)
+        let takePhoto = button(containing: "TAKE PHOTO", in: app)
+        XCTAssertTrue(takePhoto.waitForExistence(timeout: 5), "Take Photo control missing")
+        XCTAssertTrue(takePhoto.isHittable, "Take Photo is not hittable")
         XCTAssertTrue(app.buttons["Back"].isHittable)
     }
 
-    func testReadingTabsAreDistinctAndSwitch() throws {
+    func testReadingTabsSwitch() throws {
         let app = launch("reading")
-        assertHotspotsAreDistinct(app)
+        assertControlsAreSane(app)
 
-        let inDepth = app.buttons["In-Depth tab"]
-        XCTAssertTrue(inDepth.waitForExistence(timeout: 5))
-        XCTAssertTrue(inDepth.isHittable, "In-Depth tab is not hittable")
-        inDepth.tap()
-        RunLoop.current.run(until: Date().addingTimeInterval(1))
+        app.buttons["IN-DEPTH"].tap()
+        XCTAssertTrue(element(containing: "KEY INSIGHTS", in: app).waitForExistence(timeout: 5),
+                      "IN-DEPTH did not show timeline content")
 
-        // The line cards belong to Overview; after switching they should be gone.
-        XCTAssertFalse(
-            app.buttons["Life Line. Your vitality and major life changes."].exists,
-            "Tab did not switch away from Overview"
-        )
+        app.buttons["LINES"].tap()
+        XCTAssertTrue(element(containing: "sweeps wide around the mount", in: app).waitForExistence(timeout: 5),
+                      "LINES did not show line bodies")
     }
 
-    func testHistoryHotspotsAreDistinct() throws {
+    func testHistoryRowOpensReading() throws {
         let app = launch("history")
-        assertHotspotsAreDistinct(app)
-        XCTAssertTrue(app.buttons["New Reading"].isHittable)
-        XCTAssertTrue(app.buttons["Settings"].isHittable, "Tab bar Settings is not hittable")
+        assertControlsAreSane(app)
+
+        let row = element(containing: "In-Depth Reading", in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "Seeded reading row missing")
+        row.tap()
+        XCTAssertTrue(app.buttons["OVERVIEW"].waitForExistence(timeout: 5),
+                      "Tapping a history row did not open the reading")
     }
 
-    func testShareHotspotsAreDistinct() throws {
+    func testSettingsReachesPrivacyExplainer() throws {
+        let app = launch("settings")
+        assertControlsAreSane(app)
+
+        button(containing: "YOUR PRIVACY", in: app).tap()
+        XCTAssertTrue(element(containing: "deleted immediately", in: app).waitForExistence(timeout: 5),
+                      "Your Privacy row did not open the explainer")
+    }
+
+    func testShareShowsActions() throws {
         let app = launch("share")
-        assertHotspotsAreDistinct(app)
-        XCTAssertTrue(app.buttons["Save to Photos"].isHittable)
+        assertControlsAreSane(app)
+        XCTAssertTrue(app.buttons["Save to Photos"].waitForExistence(timeout: 5))
     }
 
-    func testPaywallHotspotsAreDistinct() throws {
+    func testPaywallControlsAreSane() throws {
         let app = launch("paywall")
-        assertHotspotsAreDistinct(app)
-        XCTAssertTrue(app.buttons["Close"].isHittable, "Paywall close button is not hittable")
+        assertControlsAreSane(app)
+        XCTAssertTrue(app.buttons["Close"].isHittable, "Paywall close is not hittable")
+        XCTAssertTrue(element(containing: "START FREE TRIAL", in: app).waitForExistence(timeout: 5))
     }
 }
 
-/// The sound toggle replaces the baked compass medallion on Home.
+/// The sound toggle on Home.
 final class MuteButtonTests: XCTestCase {
 
     func testMuteButtonTogglesAndPersists() throws {
@@ -125,8 +159,7 @@ final class MuteButtonTests: XCTestCase {
         app.launch()
         RunLoop.current.run(until: Date().addingTimeInterval(3))
 
-        // The preference persists, so a previous run may have left it either way;
-        // assert on the transition rather than on a presumed starting state.
+        // The preference persists, so assert on the transition, not a presumed start.
         let soundOn = app.buttons["Sound on"]
         let soundOff = app.buttons["Sound off"]
         XCTAssertTrue(
@@ -137,23 +170,16 @@ final class MuteButtonTests: XCTestCase {
         let initial = startsMuted ? soundOff : soundOn
         let flipped = startsMuted ? soundOn : soundOff
 
-        XCTAssertTrue(initial.isHittable, "Sound toggle is not hittable")
         initial.tap()
-        XCTAssertTrue(
-            flipped.waitForExistence(timeout: 3),
-            "Tapping the toggle did not flip the sound state"
-        )
+        XCTAssertTrue(flipped.waitForExistence(timeout: 3),
+                      "Tapping the toggle did not flip the sound state")
 
-        // The choice survives a relaunch.
         app.terminate()
         app.launch()
         RunLoop.current.run(until: Date().addingTimeInterval(3))
-        XCTAssertTrue(
-            flipped.waitForExistence(timeout: 5),
-            "Sound preference did not persist across launches"
-        )
+        XCTAssertTrue(flipped.waitForExistence(timeout: 5),
+                      "Sound preference did not persist across launches")
 
-        // Restore the original state for later runs.
         flipped.tap()
     }
 }

@@ -8,32 +8,17 @@ import UIKit
 @MainActor
 struct ArtAssetTests {
 
-    /// The Align screen shows the live camera *through* the artwork: the viewfinder
-    /// interior of bg_align is luminance-keyed to transparent so the baked glow,
-    /// crosshairs and brackets stay painted on top of the feed.
+    /// The Align screen shows the live camera *through* the guide overlay: hand_guide is
+    /// luminance-keyed so the painted glow, crosshairs and brackets stay opaque while the
+    /// dark glass is transparent.
     ///
-    /// This regressed once when a batch image-cleanup script called `.convert("RGB")`
-    /// over every asset, silently flattening the alpha and leaving the camera hidden
-    /// behind opaque art. Nothing failed to build and no screenshot caught it, because
-    /// the simulator has no camera. Hence this test, which inspects the compiled asset.
-    @Test func alignArtViewfinderIsTransparent() throws {
-        let image = try #require(UIImage(named: "bg_align"), "bg_align missing from the bundle")
+    /// This regressed once when a batch image-cleanup script called `.convert("RGB")` over
+    /// every asset, flattening the alpha and hiding the camera behind opaque art. Nothing
+    /// failed to build and no screenshot caught it, because the simulator has no camera.
+    @Test func handGuideIsKeyedForTheCameraFeed() throws {
+        let image = try #require(UIImage(named: "hand_guide"), "hand_guide missing from the bundle")
         let cgImage = try #require(image.cgImage)
 
-        // Must match AlignHandView.viewfinder.
-        let viewfinder = (x: 0.140, y: 0.276, w: 0.722, h: 0.449)
-        let width = cgImage.width
-        let height = cgImage.height
-
-        let region = CGRect(
-            x: Int(viewfinder.x * Double(width)),
-            y: Int(viewfinder.y * Double(height)),
-            width: Int(viewfinder.w * Double(width)),
-            height: Int(viewfinder.h * Double(height))
-        )
-        let cropped = try #require(cgImage.cropping(to: region))
-
-        // Render into a known RGBA buffer so we can read the alpha channel directly.
         let sampleWidth = 60
         let sampleHeight = 80
         var pixels = [UInt8](repeating: 0, count: sampleWidth * sampleHeight * 4)
@@ -48,19 +33,38 @@ struct ArtAssetTests {
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
             )
         )
-        context.draw(cropped, in: CGRect(x: 0, y: 0, width: sampleWidth, height: sampleHeight))
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: sampleWidth, height: sampleHeight))
 
         let alphas = stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
-        let transparentShare = Double(alphas.filter { $0 < 40 }.count) / Double(alphas.count)
+        let transparent = Double(alphas.filter { $0 < 40 }.count) / Double(alphas.count)
+        let visible = Double(alphas.filter { $0 > 110 }.count) / Double(alphas.count)
 
         #expect(
-            transparentShare > 0.25,
-            """
-            bg_align's viewfinder is \(Int(transparentShare * 100))% transparent — the camera \
-            feed will not be visible through it. The alpha channel was probably flattened by \
-            an image-processing step; regenerate the asset preserving RGBA.
-            """
+            transparent > 0.30,
+            "hand_guide is only \(Int(transparent * 100))% transparent — the camera feed would be hidden behind it"
         )
+        #expect(
+            visible > 0.01,
+            "hand_guide has almost no visible pixels — the guide art itself is missing"
+        )
+    }
+
+    /// Every painted background and component the screens reference must be bundled. A
+    /// missing imageset renders as blank space, builds green, and only shows up visually.
+    @Test func allArtworkIsBundled() {
+        let required = [
+            // Painted screen backgrounds
+            "bg_splash", "bg_home", "bg_capture", "bg_align", "bg_reading",
+            "bg_history", "bg_history_list", "bg_share", "bg_paywall", "bg_frame",
+            // Components
+            "btn_ornate", "btn_primary", "btn_primary_alt", "btn_secondary", "btn_tertiary",
+            "nav_bar", "hand_guide",
+            "selector_left", "selector_center", "selector_right",
+            "selector_left_selected", "selector_center_selected", "selector_right_selected",
+        ]
+        for name in required {
+            #expect(UIImage(named: name) != nil, "Missing bundled artwork: \(name)")
+        }
     }
 
     /// The analyzing interstitial is a bundled clip with its own soundtrack; the screen

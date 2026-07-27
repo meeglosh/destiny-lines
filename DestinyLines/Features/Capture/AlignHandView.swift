@@ -2,9 +2,8 @@ import AVFoundation
 import SwiftUI
 import UIKit
 
-/// DL-align-hand-camera.png used directly. The viewfinder interior of the art has been
-/// made luminance-transparent, so the live camera feed shows through the dark glass
-/// while the baked glowing hand guide, crosshairs, and brackets stay on top.
+/// Align over the painted camera-guide background. The live feed sits inside the painted
+/// viewfinder, with the guide artwork drawn on top of it.
 struct AlignHandView: View {
     let source: AppState.CaptureSource
 
@@ -14,63 +13,91 @@ struct AlignHandView: View {
     @State private var camera = CameraController()
     @State private var submission = PalmSubmission()
 
-    /// Viewfinder interior in art-normalized coordinates (matches the alpha hole).
-    private let viewfinder = (x: 0.140, y: 0.276, w: 0.722, h: 0.449)
+    /// Viewfinder interior in the background's coordinate space — matches the region the
+    /// hand-guide overlay was cut from.
+    private let viewfinder = (x: 0.10, y: 0.155, w: 0.80, h: 0.545)
 
     var body: some View {
-        GeometryReader { proxy in
-            let container = ArtLayout.container(proxy)
-            let art = ArtGeometry(frame: ArtLayout.fittedFrame(for: "bg_align", in: container))
-            let holeRect = art.rect(viewfinder.x, viewfinder.y, viewfinder.w, viewfinder.h)
+        ArtScreen(image: "bg_align") { art in
+            let hole = art.rect(viewfinder.x, viewfinder.y, viewfinder.w, viewfinder.h)
 
-            ZStack(alignment: .topLeading) {
-                Theme.background
-                    .frame(width: container.width, height: container.height)
-                    .offset(x: container.minX, y: container.minY)
-
-                // Live camera behind the art's transparent viewfinder.
+            // Live feed inside the painted viewfinder…
+            Group {
                 if camera.isRunning, let session = camera.session {
                     CameraPreview(session: session)
-                        .artFrame(holeRect)
                 } else {
-                    Rectangle()
-                        .fill(Color.black)
-                        .artFrame(holeRect)
-                }
-
-                Image("bg_align")
-                    .resizable()
-                    .artFrame(art.frame)
-                    .allowsHitTesting(false)
-
-                if camera.isDenied {
-                    Text("Camera access is off.\nEnable it in Settings to take a photo.")
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.goldLight)
-                        .multilineTextAlignment(.center)
-                        .artFrame(holeRect)
-                }
-
-                ArtHotspot(rect: art.rect(0.02, 0.02, 0.14, 0.05), label: "Back",
-                           debug: ArtDebug.showHotspots) {
-                    dismiss()
-                }
-
-                // CONTINUE plate
-                ArtHotspot(rect: art.rect(0.13, 0.872, 0.74, 0.075), label: "Continue. Takes the photo.",
-                           debug: ArtDebug.showHotspots) {
-                    Task { await captureAndSubmit() }
-                }
-
-                if submission.state != .idle {
-                    WorkingVeil(text: submission.state == .checking
-                                ? "Looking for your hand..."
-                                : "Sending to the spirits...")
+                    ZStack {
+                        Color.black.opacity(0.9)
+                        if camera.isDenied {
+                            Text("Camera access is off.\nEnable it in Settings to take a photo.")
+                                .font(.custom("AlegreyaSans-Regular", size: art.fontSize(0.0135)))
+                                .foregroundStyle(Theme.goldLight)
+                                .multilineTextAlignment(.center)
+                                .padding(20)
+                        } else {
+                            ProgressView().tint(Theme.gold)
+                        }
+                    }
                 }
             }
+            .artFrame(hole)
+            .clipShape(RoundedRectangle(cornerRadius: hole.width * 0.03))
+
+            // …with the painted glow, crosshairs and brackets keyed over the top, so the
+            // guide reads against the feed instead of hiding it.
+            Image("hand_guide")
+                .resizable()
+                .artFrame(hole)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+
+            BackButton { dismiss() }
+                .artFrame(art.rect(0.045, 0.052, 0.12, 0.045))
+
+            // Tip plate.
+            HStack(spacing: art.frame.width * 0.02) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: art.fontSize(0.016)))
+                    .foregroundStyle(Theme.goldBevel)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("TIPS FOR BEST RESULTS")
+                        .font(.custom("Rye-Regular", size: art.fontSize(0.0125)))
+                        .foregroundStyle(Theme.gold)
+                    Text("Use good lighting and a clear background.")
+                        .font(.custom("AlegreyaSans-Regular", size: art.fontSize(0.0118)))
+                        .foregroundStyle(Theme.goldLight.opacity(0.9))
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            }
+            .artFrame(art.rect(0.145, 0.772, 0.71, 0.048), alignment: .leading)
+            .allowsHitTesting(false)
+
+            // CONTINUE plate.
+            HStack(spacing: art.frame.width * 0.03) {
+                Sparkle(size: art.fontSize(0.011))
+                Text("CONTINUE")
+                    .font(.custom("Rye-Regular", size: art.fontSize(0.021)))
+                    .kerning(1.4)
+                    .foregroundStyle(Theme.goldBevel)
+                    .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                Sparkle(size: art.fontSize(0.011))
+            }
+            .artFrame(art.rect(0.16, 0.868, 0.68, 0.050))
+            .allowsHitTesting(false)
+
+            ArtHotspot(rect: art.rect(0.11, 0.856, 0.78, 0.072),
+                       label: "Continue. Takes the photo.",
+                       enabled: camera.isRunning) {
+                Task { await captureAndSubmit() }
+            }
+
+            if submission.state != .idle {
+                WorkingVeil(text: submission.state == .checking
+                            ? "Looking for your hand..."
+                            : "Sending to the spirits...")
+            }
         }
-        .preferredColorScheme(.dark)
-        .toolbar(.hidden, for: .navigationBar)
         .task { await camera.start() }
         .onDisappear { camera.stop() }
     }

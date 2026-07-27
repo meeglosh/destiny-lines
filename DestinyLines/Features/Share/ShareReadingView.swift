@@ -1,9 +1,8 @@
 import Photos
 import SwiftUI
 
-/// DL-share-reading.png used directly (bg_share_clean: the sample insight text has
-/// been lifted out of the card). Real key insights are typeset back into the card in
-/// the comp's style, both on screen and in the shared/saved image.
+/// Share over the painted card background. The wordmark, ribbon, hand and KEY INSIGHTS
+/// header are painted; the insights themselves and both action plates are live.
 struct ShareReadingView: View {
     let reading: Reading
 
@@ -12,27 +11,49 @@ struct ShareReadingView: View {
     @State private var cardImage: UIImage?
     @State private var saveMessage: String?
 
-    /// The four insight rows in art-normalized space (icon column is baked art).
-    private let insightRows: [(y: CGFloat, height: CGFloat)] = [
-        (0.582, 0.045), (0.627, 0.045), (0.671, 0.045), (0.714, 0.045),
-    ]
+    /// The four painted insight rows: icon wells on the left, text to their right.
+    private let insightY: [CGFloat] = [0.618, 0.652, 0.686, 0.720]
 
     var body: some View {
-        ArtScreen(image: "bg_share_clean") { art in
-            ArtHotspot(rect: art.rect(0.02, 0.035, 0.14, 0.055), label: "Back",
-                       debug: ArtDebug.showHotspots) {
-                dismiss()
+        ArtScreen(image: "bg_share") { art in
+            BackButton { dismiss() }
+                .artFrame(art.rect(0.05, 0.045, 0.11, 0.045))
+
+            ForEach(Array(reading.content.keyInsights.prefix(4).enumerated()), id: \.offset) { index, insight in
+                Text(insight)
+                    .font(.custom("AlegreyaSans-Regular", size: art.fontSize(0.0112)))
+                    .foregroundStyle(Theme.goldLight)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.65)
+                    .artFrame(art.rect(0.285, insightY[index], 0.50, 0.030), alignment: .leading)
+                    .allowsHitTesting(false)
             }
 
-            // Real insights typeset into the cleaned card region.
-            insightTexts(art)
+            // SHARE NOW plate.
+            if let cardImage {
+                ShareLink(
+                    item: Image(uiImage: cardImage),
+                    preview: SharePreview("My Palm Reading", image: Image(uiImage: cardImage))
+                ) {
+                    plateLabel("SHARE NOW", art: art)
+                }
+                .buttonStyle(ArtPressStyle())
+                .artFrame(art.rect(0.10, 0.812, 0.80, 0.055))
+                .accessibilityLabel("Share Now")
+            } else {
+                plateLabel("PREPARING...", art: art)
+                    .opacity(0.6)
+                    .artFrame(art.rect(0.10, 0.812, 0.80, 0.055))
+                    .allowsHitTesting(false)
+            }
 
-            // SHARE NOW plate
-            shareNowHotspot(art)
+            // SAVE TO PHOTOS plate.
+            plateLabel("SAVE TO PHOTOS", art: art)
+                .artFrame(art.rect(0.10, 0.888, 0.80, 0.055))
+                .allowsHitTesting(false)
 
-            // SAVE TO PHOTOS plate
-            ArtHotspot(rect: art.rect(0.075, 0.906, 0.85, 0.062), label: "Save to Photos",
-                       debug: ArtDebug.showHotspots) {
+            ArtHotspot(rect: art.rect(0.08, 0.878, 0.84, 0.072),
+                       label: "Save to Photos", enabled: cardImage != nil) {
                 Task { await saveToPhotos() }
             }
         }
@@ -44,39 +65,24 @@ struct ShareReadingView: View {
         }
     }
 
-    @ViewBuilder
-    private func insightTexts(_ art: ArtGeometry) -> some View {
-        let insights = Array(reading.content.keyInsights.prefix(4))
-        ForEach(Array(insights.enumerated()), id: \.offset) { index, insight in
-            let row = insightRows[index]
-            Text(insight)
-                .font(.custom("AlegreyaSans-Regular", size: art.frame.height * 0.0155))
-                .foregroundStyle(Theme.goldLight)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-                .artFrame(art.rect(0.328, row.y - row.height / 2, 0.50, row.height), alignment: .leading)
-                .allowsHitTesting(false)
-        }
-    }
-
-    @ViewBuilder
-    private func shareNowHotspot(_ art: ArtGeometry) -> some View {
-        if let cardImage {
-            ShareLink(
-                item: Image(uiImage: cardImage),
-                preview: SharePreview("My Palm Reading", image: Image(uiImage: cardImage))
-            ) {
-                Rectangle().fill(Color.clear)
-            }
-            .buttonStyle(ArtPressStyle())
-            .artFrame(art.rect(0.075, 0.821, 0.85, 0.070))
-            .accessibilityLabel("Share Now")
+    private func plateLabel(_ text: String, art: ArtGeometry) -> some View {
+        HStack(spacing: art.frame.width * 0.03) {
+            Sparkle(size: art.fontSize(0.011))
+            Text(text)
+                .font(.custom("Rye-Regular", size: art.fontSize(0.0205)))
+                .kerning(1.2)
+                .foregroundStyle(Theme.goldBevel)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+            Sparkle(size: art.fontSize(0.011))
         }
     }
 
     // MARK: - Card rendering
 
-    /// The shared/saved image: the comp's card art with the real insights typeset in.
+    /// The shared image: the painted share background with the real insights typeset in,
+    /// rendered at full artwork resolution.
     @MainActor
     private func renderCard() {
         let renderer = ImageRenderer(content: ShareCardComposite(reading: reading))
@@ -103,29 +109,28 @@ struct ShareReadingView: View {
     }
 }
 
-/// The share card: comp card art + real insight text, rendered at story proportions.
+/// The shareable card: the painted share artwork with live insights typeset into it.
 struct ShareCardComposite: View {
     let reading: Reading
 
-    // share_card_art is 610x1099; insight rows measured in its own space.
-    private let width: CGFloat = 610
-    private let height: CGFloat = 1099
-    private let rows: [CGFloat] = [0.700, 0.769, 0.838, 0.905]
+    /// Rendered at the artwork's own proportions (863 x 1822 → a story-shaped card).
+    private let width: CGFloat = 863
+    private let height: CGFloat = 1822
+    private let rows: [CGFloat] = [0.612, 0.647, 0.682, 0.717]
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Image("share_card_art")
+            Image("bg_share")
                 .resizable()
                 .frame(width: width, height: height)
 
             ForEach(Array(reading.content.keyInsights.prefix(4).enumerated()), id: \.offset) { index, insight in
                 Text(insight)
-                    .font(.custom("AlegreyaSans-Regular", size: 19))
+                    .font(.custom("AlegreyaSans-Regular", size: height * 0.0122))
                     .foregroundStyle(Theme.goldLight)
                     .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .frame(width: width * 0.60, alignment: .leading)
-                    .position(x: width * 0.585, y: height * rows[index])
+                    .frame(width: width * 0.55, alignment: .leading)
+                    .offset(x: width * 0.245, y: height * rows[index])
             }
         }
         .frame(width: width, height: height)
