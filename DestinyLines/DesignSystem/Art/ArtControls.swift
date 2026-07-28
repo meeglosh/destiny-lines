@@ -232,13 +232,15 @@ struct ArtNavBar: View {
     var body: some View {
         GeometryReader { proxy in
             let itemWidth = proxy.size.width / CGFloat(items.count)
-            let plateWidth = itemWidth * 0.84
+            // 33% bigger than the original plate, and touching the top of the bar rather
+            // than floating below a gap — per the owner's measurement against the mockup.
+            let plateWidth = itemWidth * 0.84 * 1.33
             let plateHeight = plateWidth / (174.0 / 109.0)
-            // Clear space above the plate so the bar doesn't crowd the screen above it.
-            let topInset: CGFloat = 16
+            // Clearance for the hairline only; the plate itself now starts right below it.
+            let topInset: CGFloat = 6
 
             ZStack(alignment: .top) {
-                // Active plate, sliding to the chosen item.
+                // Active plate, sliding to the chosen item, seated at the top of the bar.
                 Image("nav_active")
                     .resizable()
                     .frame(width: plateWidth, height: plateHeight)
@@ -257,13 +259,13 @@ struct ArtNavBar: View {
                         Button {
                             if item.isAction { onRead() } else { selection = item.tab }
                         } label: {
-                            VStack(spacing: plateHeight * 0.06) {
+                            VStack(spacing: plateHeight * 0.05) {
                                 NavGlyph(tab: item.tab)
-                                    .frame(width: plateHeight * 0.44, height: plateHeight * 0.44)
+                                    .frame(width: plateHeight * 0.40, height: plateHeight * 0.40)
                                     .foregroundStyle(isSelected ? AnyShapeStyle(Theme.goldBevel) : AnyShapeStyle(Theme.gold.opacity(0.72)))
 
                                 Text(item.label)
-                                    .font(.custom("AlegreyaSans-Bold", size: plateHeight * 0.22))
+                                    .font(.custom("AlegreyaSans-Bold", size: plateHeight * 0.165))
                                     .kerning(0.7)
                                     .foregroundStyle(isSelected ? Theme.goldLight : Theme.gold.opacity(0.62))
                                     .lineLimit(1)
@@ -282,7 +284,7 @@ struct ArtNavBar: View {
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
             .background(navBackdrop)
         }
-        .frame(height: 80)
+        .frame(height: 92)
     }
 
     /// Dark strip beneath a warm hairline, echoing the mockup's bar.
