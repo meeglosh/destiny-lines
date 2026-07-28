@@ -271,7 +271,13 @@ struct ArtNavBar: View {
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.55)
                             }
-                            .padding(.top, topInset + plateHeight * 0.145)
+                            // Bottom-aligned within the plate's own footprint (with a
+                            // few points of breathing room) rather than pinned to the
+                            // plate's top, so the label sits near the plate's bottom
+                            // edge instead of floating in its upper half.
+                            .padding(.bottom, 4)
+                            .frame(width: itemWidth, height: plateHeight, alignment: .bottom)
+                            .padding(.top, topInset)
                             .frame(width: itemWidth, height: proxy.size.height, alignment: .top)
                             .contentShape(Rectangle())
                         }
