@@ -96,19 +96,29 @@ struct WellButton: View {
 }
 
 /// Circular back control used on flow screens.
+///
+/// Draws its own circle and ring by default. Where the background art already bakes in
+/// a matching well (Capture does), set `showsBackground: false` and position this over
+/// that well instead — otherwise the two circles show up stacked and mismatched.
 struct BackButton: View {
+    var showsBackground = true
+    var size: CGFloat = 40
+    var iconSize: CGFloat = 16
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             ZStack {
-                Circle().fill(Color.black.opacity(0.45))
-                Circle().strokeBorder(Theme.gold.opacity(0.9), lineWidth: 1.4)
+                if showsBackground {
+                    Circle().fill(Color.black.opacity(0.45))
+                    Circle().strokeBorder(Theme.gold.opacity(0.9), lineWidth: 1.4)
+                }
                 Image(systemName: "arrow.left")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: iconSize, weight: .semibold))
                     .foregroundStyle(Theme.gold)
             }
-            .frame(width: 40, height: 40)
+            .frame(width: size, height: size)
+            .contentShape(Circle())
         }
         .buttonStyle(ArtPressStyle())
         .accessibilityLabel("Back")

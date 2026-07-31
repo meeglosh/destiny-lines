@@ -28,6 +28,19 @@ struct ArtGeometry {
     func fontSize(_ fraction: CGFloat) -> CGFloat { frame.height * fraction }
 }
 
+/// Fraction of the raw artwork, on each edge, that is dead margin baked into the PNG
+/// rather than content — measured once per asset by scanning for the first/last row or
+/// column above a luminance floor. `fillingFrame` crops to the content rect instead of
+/// the raw image so that margin never reads as a letterboxing bar.
+struct ArtInsets {
+    var top: CGFloat = 0
+    var bottom: CGFloat = 0
+    var left: CGFloat = 0
+    var right: CGFloat = 0
+
+    static let zero = ArtInsets()
+}
+
 enum ArtLayout {
     private static var sizeCache: [String: CGSize] = [:]
 
@@ -44,14 +57,33 @@ enum ArtLayout {
     /// as intentional full-bleed. `verticalAnchor` decides which end survives: the
     /// artwork's top matters most (titles, arches), so it defaults to 0 — crop the
     /// bottom, never the header.
-    static func fillingFrame(for image: String, in box: CGRect, verticalAnchor: CGFloat = 0) -> CGRect {
+    ///
+    /// `contentInsets` sizes the cover-fit off a trimmed content sub-rect of the raw
+    /// image instead of the full raw dimensions, so a baked margin gets cropped away
+    /// like real overflow rather than rendered as a visible bar. The full image is still
+    /// positioned and rendered (just shifted so the content rect lands where the raw
+    /// rect used to), so `art.rect(nx, ny, ...)` overlay coordinates stay relative to the
+    /// full raw image everywhere — this only changes what's visible, not the coordinate
+    /// contract.
+    static func fillingFrame(
+        for image: String,
+        in box: CGRect,
+        verticalAnchor: CGFloat = 0,
+        contentInsets: ArtInsets = .zero
+    ) -> CGRect {
         let size = artSize(image)
-        let scale = max(box.width / size.width, box.height / size.height)
+        let contentWidth = size.width * (1 - contentInsets.left - contentInsets.right)
+        let contentHeight = size.height * (1 - contentInsets.top - contentInsets.bottom)
+        let scale = max(box.width / contentWidth, box.height / contentHeight)
         let width = size.width * scale
         let height = size.height * scale
+        let contentScaledWidth = contentWidth * scale
+        let contentScaledHeight = contentHeight * scale
+        let contentX = box.midX - contentScaledWidth / 2
+        let contentY = box.minY - (contentScaledHeight - box.height) * verticalAnchor
         return CGRect(
-            x: box.midX - width / 2,
-            y: box.minY - (height - box.height) * verticalAnchor,
+            x: contentX - contentInsets.left * size.width * scale,
+            y: contentY - contentInsets.top * size.height * scale,
             width: width,
             height: height
         )
@@ -86,6 +118,9 @@ struct ArtScreen<Overlay: View>: View {
     /// Scale the artwork to the screen's width and pin it to the top instead of filling.
     /// Used for backgrounds short enough to leave the nav bar its own room.
     var fitsWidth = false
+    /// Baked dead margin on the raw artwork to crop away rather than render. See
+    /// `ArtLayout.fillingFrame`.
+    var contentInsets: ArtInsets = .zero
     @ViewBuilder var overlay: (ArtGeometry) -> Overlay
 
     var body: some View {
@@ -94,7 +129,9 @@ struct ArtScreen<Overlay: View>: View {
             let art = ArtGeometry(
                 frame: fitsWidth
                     ? ArtLayout.widthFittedFrame(for: image, in: box)
-                    : ArtLayout.fillingFrame(for: image, in: box, verticalAnchor: verticalAnchor)
+                    : ArtLayout.fillingFrame(
+                        for: image, in: box, verticalAnchor: verticalAnchor, contentInsets: contentInsets
+                    )
             )
 
             let content = ZStack(alignment: .topLeading) {
