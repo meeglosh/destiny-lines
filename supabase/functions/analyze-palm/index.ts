@@ -28,6 +28,12 @@ const RATES: Record<string, { input: number; cachedInput: number; output: number
 // Fair-use ceiling (§7.5).
 const MONTHLY_PREMIUM_CEILING = 150;
 
+// TEMPORARY, TESTFLIGHT BETA ONLY — §6.5 specifies exactly 1 free reading. Raised to let
+// testers exercise the capture -> gates -> reading pipeline repeatedly while local
+// StoreKit testing is broken and the subscription can't be purchased to reach the
+// premium path another way. REVERT TO 1 before public launch.
+const FREE_TIER_CEILING = 20;
+
 // Output cap so a runaway generation cannot bill unbounded output (§7.5).
 const MAX_OUTPUT_TOKENS = 3000;
 
@@ -141,7 +147,7 @@ Deno.serve(async (req) => {
       (!profile.subscription_expires_at ||
         new Date(profile.subscription_expires_at) > new Date());
 
-    if (!subscribed && profile.free_readings_used >= 1) {
+    if (!subscribed && profile.free_readings_used >= FREE_TIER_CEILING) {
       return json({ code: "payment_required" }, 402);
     }
 
