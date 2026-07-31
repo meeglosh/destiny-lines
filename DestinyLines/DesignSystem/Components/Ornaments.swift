@@ -55,10 +55,14 @@ struct OrnamentDivider: View {
 struct IconMedallion: View {
     let systemName: String
     var diameter: CGFloat = 52
+    /// Fill opacity behind the icon. Defaults to a translucent well; pass 1 where the
+    /// medallion sits over busy artwork that shouldn't show through (e.g. a corner
+    /// button over decorative stars).
+    var backgroundOpacity: CGFloat = 0.5
 
     var body: some View {
         ZStack {
-            Circle().fill(Color.black.opacity(0.5))
+            Circle().fill(Color.black.opacity(backgroundOpacity))
             Circle().strokeBorder(Theme.gold, lineWidth: max(1, diameter * 0.03))
             Circle()
                 .strokeBorder(Theme.goldDark.opacity(0.6), lineWidth: 1)

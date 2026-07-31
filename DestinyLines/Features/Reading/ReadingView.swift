@@ -36,8 +36,23 @@ struct ReadingView: View {
     // MARK: - Overview (live text over the painted plates)
 
     private var overviewScreen: some View {
-        ArtScreen(image: "bg_reading") { art in
-            chrome(art)
+        ArtScreen(
+            image: "bg_reading",
+            // Like Capture and History, this art is narrower/taller than the device box,
+            // so a cover-fit always crops vertically. Bias that crop toward the top —
+            // the plain gap below the arch (before "DESTINY LINES" starts) absorbs most
+            // of it — so the crystal-ball decoration at the very bottom stops being cut
+            // off, and the whole screen sits higher instead of leaving a dead gap under
+            // the Dynamic Island.
+            verticalAnchor: 0.78
+        ) { art in
+            chrome(
+                art,
+                // bg_reading's own circular wells, pixel-measured, centered at
+                // (13.3%, 11.0%) and (86.7%, 11.0%) of the art.
+                backRect: art.rect(0.0887, 0.0887, 0.0881, 0.0417),
+                shareRect: art.rect(0.8233, 0.0887, 0.0881, 0.0417)
+            )
 
             ForEach(Array(reading.content.lines.ordered.enumerated()), id: \.offset) { index, entry in
                 let y = plateY[index]
@@ -54,7 +69,9 @@ struct ReadingView: View {
                         .lineLimit(2)
                         .minimumScaleFactor(0.6)
                 }
-                .artFrame(art.rect(0.335, y, 0.49, 0.075), alignment: .leading)
+                // The icon medallion's right edge sits at ~35.6% of the art (measured
+                // directly off bg_reading), so the label starts just past it.
+                .artFrame(art.rect(0.39, y, 0.43, 0.075), alignment: .leading)
                 .allowsHitTesting(false)
 
                 Image(systemName: "chevron.right")
@@ -69,7 +86,8 @@ struct ReadingView: View {
                 }
             }
 
-            // VIEW FULL READING plate.
+            // VIEW FULL READING plate — pixel-measured at raw y 0.818–0.895, so the
+            // text is centered on 0.8565 rather than the plate's old (too-high) rect.
             HStack(spacing: art.frame.width * 0.03) {
                 Sparkle(size: art.fontSize(0.011))
                 Text("VIEW FULL READING")
@@ -81,10 +99,10 @@ struct ReadingView: View {
                     .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
                 Sparkle(size: art.fontSize(0.011))
             }
-            .artFrame(art.rect(0.11, 0.820, 0.78, 0.050))
+            .artFrame(art.rect(0.11, 0.8265, 0.78, 0.060))
             .allowsHitTesting(false)
 
-            ArtHotspot(rect: art.rect(0.06, 0.812, 0.88, 0.066), label: "View Full Reading") {
+            ArtHotspot(rect: art.rect(0.06, 0.815, 0.88, 0.083), label: "View Full Reading") {
                 if isFree { appState.showPaywall = true } else { tab = .inDepth }
             }
 
@@ -112,17 +130,28 @@ struct ReadingView: View {
 
     // MARK: - Shared chrome
 
+    /// bg_reading bakes a circular well for the back button at (13.3%, 11.0%) of the
+    /// art — pixel-measured — but bg_frame (used by the scrolling tabs) has no matching
+    /// well, so only the overview screen aligns to it; the other tabs keep the old
+    /// generic top-left/top-right placement.
     @ViewBuilder
-    private func chrome(_ art: ArtGeometry) -> some View {
-        BackButton { dismiss() }
-            .artFrame(art.rect(0.028, 0.055, 0.10, 0.048))
+    private func chrome(
+        _ art: ArtGeometry,
+        backRect: CGRect? = nil,
+        shareRect: CGRect? = nil
+    ) -> some View {
+        let back = backRect ?? art.rect(0.028, 0.055, 0.10, 0.048)
+        let share = shareRect ?? art.rect(0.865, 0.055, 0.10, 0.048)
+
+        BackButton(showsBackground: backRect == nil) { dismiss() }
+            .artFrame(back)
 
         Button {
             appState.navigate(.share(reading))
         } label: {
-            IconMedallion(systemName: "square.and.arrow.up", diameter: art.frame.width * 0.10)
+            IconMedallion(systemName: "square.and.arrow.up", diameter: share.width, backgroundOpacity: 1)
         }
-        .artFrame(art.rect(0.865, 0.055, 0.10, 0.048))
+        .artFrame(share)
         .accessibilityLabel("Share this reading")
 
         ArtSelector(
