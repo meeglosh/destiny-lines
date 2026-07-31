@@ -100,11 +100,14 @@ struct ArtRow: View {
                     GeometryReader { proxy in
                         let h = proxy.size.height
                         HStack(spacing: 0) {
-                            // The icon well is painted at roughly 8%–26% of the width.
+                            // The well's ring is pixel-measured at center (10.8%, 47%) of
+                            // the plate, not the geometric center of this 17.5%-wide band
+                            // (8.75%), so the icon needs a small nudge to sit inside it.
                             Image(systemName: icon)
                                 .font(.system(size: h * 0.34, weight: .medium))
                                 .foregroundStyle(Theme.goldBevel)
                                 .frame(width: proxy.size.width * 0.175)
+                                .offset(x: proxy.size.width * 0.0205, y: -h * 0.03)
 
                             VStack(alignment: .leading, spacing: h * 0.04) {
                                 Text(title)
@@ -121,6 +124,9 @@ struct ArtRow: View {
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            // The well's right edge sits at ~20.6% of the plate; clear it
+                            // before the label starts.
+                            .padding(.leading, proxy.size.width * 0.04)
 
                             Image(systemName: "chevron.right")
                                 .font(.system(size: h * 0.20, weight: .semibold))
@@ -134,6 +140,52 @@ struct ArtRow: View {
         }
         .buttonStyle(ArtPressStyle())
         .disabled(!enabled)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(subtitle.map { "\(title). \($0)" } ?? title)
+    }
+}
+
+// MARK: - History row
+
+/// The reading-history list row plate: unlike `ArtRow`, the palm icon and the chevron
+/// are both baked into btn_history's own art (every row is a reading, so there's no
+/// per-row icon to vary), so only the title and subtitle are live text. The safe text
+/// zone (28%–85% of the plate) is pixel-measured to clear the icon well on the left and
+/// the chevron on the right.
+struct ArtHistoryRow: View {
+    let title: String
+    var subtitle: String?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image("btn_history")
+                .resizable()
+                .scaledToFit()
+                .overlay(
+                    GeometryReader { proxy in
+                        let h = proxy.size.height
+                        VStack(alignment: .leading, spacing: h * 0.04) {
+                            Text(title)
+                                .font(.custom("Rye-Regular", size: h * 0.235))
+                                .foregroundStyle(Theme.gold)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                            if let subtitle {
+                                Text(subtitle)
+                                    .font(.custom("AlegreyaSans-Regular", size: h * 0.175))
+                                    .foregroundStyle(Theme.goldLight.opacity(0.85))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.6)
+                            }
+                        }
+                        .frame(width: proxy.size.width * 0.57, alignment: .leading)
+                        .offset(x: proxy.size.width * 0.28)
+                        .frame(width: proxy.size.width, height: h, alignment: .leading)
+                    }
+                )
+        }
+        .buttonStyle(ArtPressStyle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(subtitle.map { "\(title). \($0)" } ?? title)
     }

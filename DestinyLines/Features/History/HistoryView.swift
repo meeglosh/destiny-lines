@@ -14,8 +14,7 @@ struct HistoryView: View {
                         emptyState(art)
                     } else {
                         ForEach(readingStore.readings) { reading in
-                            ArtRow(
-                                icon: "hand.raised.fill",
+                            ArtHistoryRow(
                                 title: reading.createdAt
                                     .formatted(date: .abbreviated, time: .omitted)
                                     .uppercased(),
@@ -28,13 +27,20 @@ struct HistoryView: View {
                 }
                 .padding(.vertical, art.frame.height * 0.008)
             }
-            .artFrame(art.rect(0.085, 0.200, 0.83, 0.540))
+            // The empty framed panel in bg_history_list runs from its top border
+            // (~0.198) down toward its bottom border (~0.833), but the global nav bar
+            // overlays the screen's own bottom ~92pt without shrinking this box, which
+            // covers this art below roughly 0.808. The frame's own baked bottom border
+            // and NEW READING plate sit lower than that and are never actually visible,
+            // so both the row list and the live button below stop well short of them.
+            .artFrame(art.rect(0.115, 0.210, 0.77, 0.50))
 
-            // NEW READING plate above the nav bar.
+            // NEW READING, positioned to clear the nav bar rather than matching the
+            // (permanently hidden) baked plate lower on this art.
             ArtButton(style: .primary, title: "NEW READING") {
                 appState.navigate(.capture)
             }
-            .artFrame(art.rect(0.115, 0.755, 0.77, 0.060))
+            .artFrame(art.rect(0.135, 0.735, 0.73, 0.062))
         }
     }
 
