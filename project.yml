@@ -1,6 +1,6 @@
 name: DestinyLines
 options:
-  bundleIdPrefix: com.kenzoragames
+  bundleIdPrefix: com.destiny-lines
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -41,13 +41,13 @@ targets:
           - AlegreyaSans-Bold.ttf
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines
+        PRODUCT_BUNDLE_IDENTIFIER: com.destiny-lines.app
         PRODUCT_NAME: DestinyLines
         MARKETING_VERSION: "1.0"
-        CURRENT_PROJECT_VERSION: "16"
+        CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
-        DEVELOPMENT_TEAM: 7K9WY5T49S
+        DEVELOPMENT_TEAM: XM2SC5YZ8C
         CODE_SIGN_STYLE: Automatic
     scheme:
       testTargets:
@@ -68,7 +68,7 @@ targets:
       - target: DestinyLines
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines.uitests
+        PRODUCT_BUNDLE_IDENTIFIER: com.destiny-lines.app.uitests
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: YES
         TEST_TARGET_NAME: DestinyLines
@@ -84,6 +84,6 @@ targets:
       - sdk: StoreKitTest.framework
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.kenzoragames.Destiny-Lines.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.destiny-lines.app.tests
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: YES
