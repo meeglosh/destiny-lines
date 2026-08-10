@@ -8,9 +8,13 @@ struct RejectionView: View {
     let reason: RejectionReason
 
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ArtScreen(image: "bg_frame") { art in
+            BackButton { dismiss() }
+                .artFrame(ArtChrome.backFrame())
+
             VStack(spacing: art.frame.height * 0.014) {
                 Text("THE MIST CLEARS...")
                     .font(.custom("Rye-Regular", size: art.fontSize(0.026)))

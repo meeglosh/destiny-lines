@@ -94,6 +94,7 @@ struct RootView: View {
 
         switch route {
         case "home": appState.tab = .home
+        case "read": appState.tab = .read
         case "insights": appState.tab = .insights
         case "settings": appState.tab = .settings
         case "capture": appState.navigate(.capture)
@@ -142,20 +143,11 @@ struct MainShell: View {
                 case .history:  HistoryView()
                 case .insights: InsightsView()
                 case .settings: SettingsView()
-                case .read:     HomeView()   // READ pushes the capture flow; never rests here
+                case .read:     CaptureView(isTabRoot: true)
                 }
             }
 
-            // The bar art fades to black at its foot, so extending black beneath it
-            // covers the home-indicator strip seamlessly.
-            ArtNavBar(selection: $appState.tab) {
-                appState.navigate(.capture)
-            }
-            .background(
-                Color.black
-                    .frame(maxWidth: .infinity)
-                    .ignoresSafeArea(edges: .bottom)
-            )
+            ArtNavBar(selection: $appState.tab)
         }
         .toolbar(.hidden, for: .navigationBar)
     }

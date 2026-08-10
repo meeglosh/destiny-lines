@@ -16,7 +16,7 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        ArtScreen(image: "bg_paywall") { art in
+        ArtScreen(image: "bg_paywall", cover: true, verticalAnchor: 0, ignoresSafeAreaEdges: .bottom, contentInsets: ArtInsets.for("bg_paywall")) { art in
             // Close control, top left.
             Button { dismiss() } label: {
                 ZStack {
@@ -27,7 +27,7 @@ struct PaywallView: View {
                 }
             }
             .buttonStyle(ArtPressStyle())
-            .artFrame(art.rect(0.075, 0.040, 0.085, 0.048))
+            .artFrame(ArtChrome.backFrame())
             .accessibilityLabel("Close")
 
             // Headline beside the painted crystal.

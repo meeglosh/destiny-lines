@@ -5,6 +5,10 @@ import SwiftUI
 /// plates and the tip plate are painted; this supplies the live labels, icons and the
 /// §6.1 privacy line.
 struct CaptureView: View {
+    /// True when this view is the READ tab's resting content rather than a pushed flow
+    /// screen — no back button, and the global nav bar is visible beneath it.
+    var isTabRoot = false
+
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
@@ -13,22 +17,19 @@ struct CaptureView: View {
     @State private var showLibraryPicker = false
 
     var body: some View {
+        // Scrollable: the tip plate and the §6.1 privacy line sit below what the box
+        // shows on most devices. Pushed (flow) presentations have no nav bar to clear;
+        // the READ tab root sits under `ArtNavBar`, so its scroll needs enough foot room
+        // for the privacy line to land above the bar's content zone, not behind it.
         ArtScreen(
             image: "bg_capture",
-            // The raw art (863x1822) is narrower/taller than the device box, so a
-            // cover-fit crops vertically no matter what. Split that crop between the
-            // plain gap above the "CAPTURE YOUR HAND" ribbon and the plain gap below the
-            // footer banner, each with a small buffer, so neither ever gets clipped. A
-            // small left/right inset also trims part of the baked side margin — the
-            // rest of that margin can't be cropped too without eating into the ribbon or
-            // the banner, given this image's aspect ratio.
-            verticalAnchor: 0.77,
-            contentInsets: ArtInsets(left: 0.010, right: 0.010)
+            scrollable: true,
+            bottomInset: isTabRoot ? ArtNavBar.contentHeight + 16 : 16
         ) { art in
-            // bg_capture bakes in the back button's own circular well, so this places
-            // just the arrow over it rather than drawing a second, misaligned circle.
-            BackButton(showsBackground: false) { dismiss() }
-                .artFrame(art.rect(0.0789, 0.0819, 0.102, 0.0478))
+            if !isTabRoot {
+                BackButton { dismiss() }
+                    .artFrame(ArtChrome.backFrame())
+            }
 
             sourceRow(art: art, plateTop: 0.5841, icon: "photo.on.rectangle", iconOffsetY: 0.0035,
                       title: "CHOOSE FROM PHOTOS", subtitle: "Upload from your library") {

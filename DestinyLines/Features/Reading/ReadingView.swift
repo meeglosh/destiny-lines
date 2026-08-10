@@ -36,23 +36,11 @@ struct ReadingView: View {
     // MARK: - Overview (live text over the painted plates)
 
     private var overviewScreen: some View {
-        ArtScreen(
-            image: "bg_reading",
-            // Like Capture and History, this art is narrower/taller than the device box,
-            // so a cover-fit always crops vertically. Bias that crop toward the top —
-            // the plain gap below the arch (before "DESTINY LINES" starts) absorbs most
-            // of it — so the crystal-ball decoration at the very bottom stops being cut
-            // off, and the whole screen sits higher instead of leaving a dead gap under
-            // the Dynamic Island.
-            verticalAnchor: 0.78
-        ) { art in
-            chrome(
-                art,
-                // bg_reading's own circular wells, pixel-measured, centered at
-                // (13.3%, 11.0%) and (86.7%, 11.0%) of the art.
-                backRect: art.rect(0.0887, 0.0887, 0.0881, 0.0417),
-                shareRect: art.rect(0.8233, 0.0887, 0.0881, 0.0417)
-            )
+        // Scrollable: the painted plate stack (four line rows, VIEW FULL READING, and
+        // the required §9 disclaimer footer) runs taller than the box on most devices,
+        // so VIEW FULL READING was half-cropped and the footer was unreachable.
+        ArtScreen(image: "bg_reading", scrollable: true, bottomInset: 24) { art in
+            chrome(art)
 
             ForEach(Array(reading.content.lines.ordered.enumerated()), id: \.offset) { index, entry in
                 let y = plateY[index]
@@ -116,42 +104,36 @@ struct ReadingView: View {
         ArtScreen(image: "bg_frame") { art in
             chrome(art)
 
+            // The footer/disclaimer lives inside this same internal ScrollView rather
+            // than as a separate art-positioned overlay (contrast `overviewScreen`'s
+            // `footer(art)`): bg_frame's baked window leaves only a sliver of box below
+            // it before the outer, non-scrollable ArtScreen crops the rest, which left
+            // the §9 disclaimer unreachable on this tab. Scrolling it with the cards
+            // guarantees it's always reachable regardless of device height.
             ScrollView(showsIndicators: false) {
                 VStack(spacing: art.frame.height * 0.016) {
                     content()
+                    footerInline(art)
                 }
                 .padding(.vertical, art.frame.height * 0.012)
             }
             .artFrame(art.rect(0.09, 0.235, 0.82, 0.665))
-
-            footer(art)
         }
     }
 
     // MARK: - Shared chrome
 
-    /// bg_reading bakes a circular well for the back button at (13.3%, 11.0%) of the
-    /// art — pixel-measured — but bg_frame (used by the scrolling tabs) has no matching
-    /// well, so only the overview screen aligns to it; the other tabs keep the old
-    /// generic top-left/top-right placement.
     @ViewBuilder
-    private func chrome(
-        _ art: ArtGeometry,
-        backRect: CGRect? = nil,
-        shareRect: CGRect? = nil
-    ) -> some View {
-        let back = backRect ?? art.rect(0.028, 0.055, 0.10, 0.048)
-        let share = shareRect ?? art.rect(0.865, 0.055, 0.10, 0.048)
-
-        BackButton(showsBackground: backRect == nil) { dismiss() }
-            .artFrame(back)
+    private func chrome(_ art: ArtGeometry) -> some View {
+        BackButton { dismiss() }
+            .artFrame(ArtChrome.backFrame())
 
         Button {
             appState.navigate(.share(reading))
         } label: {
-            IconMedallion(systemName: "square.and.arrow.up", diameter: share.width, backgroundOpacity: 1)
+            IconMedallion(systemName: "square.and.arrow.up", diameter: ArtChrome.controlSize, backgroundOpacity: 1)
         }
-        .artFrame(share)
+        .artFrame(ArtChrome.mirroredFrame(boxWidth: art.box.width))
         .accessibilityLabel("Share this reading")
 
         ArtSelector(
@@ -162,6 +144,20 @@ struct ReadingView: View {
     }
 
     private func footer(_ art: ArtGeometry) -> some View {
+        footerText(art)
+            .artFrame(art.rect(0.10, 0.935, 0.80, 0.045))
+            .allowsHitTesting(false)
+    }
+
+    /// Same copy as `footer(_:)`, laid out as a normal flow item instead of an
+    /// art-positioned overlay — used inside `scrollingScreen`'s internal ScrollView so it
+    /// scrolls with the content rather than needing its own reserved art real estate.
+    private func footerInline(_ art: ArtGeometry) -> some View {
+        footerText(art)
+            .padding(.top, art.frame.height * 0.01)
+    }
+
+    private func footerText(_ art: ArtGeometry) -> some View {
         VStack(spacing: 1) {
             Text("The future is in your hands.")
                 .font(.custom("AlegreyaSans-Regular", size: art.fontSize(0.0128)))
@@ -172,8 +168,6 @@ struct ReadingView: View {
                 .foregroundStyle(Theme.gold.opacity(0.65))
         }
         .multilineTextAlignment(.center)
-        .artFrame(art.rect(0.10, 0.935, 0.80, 0.045))
-        .allowsHitTesting(false)
     }
 
     private func line(for kind: PalmLine.Kind) -> PalmLine {

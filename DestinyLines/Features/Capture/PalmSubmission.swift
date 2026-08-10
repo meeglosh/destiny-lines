@@ -17,8 +17,17 @@ final class PalmSubmission {
     private(set) var state: State = .idle
 
     /// Runs the client pipeline. Returns the route to push next.
-    func submit(_ image: UIImage) async -> AppState.Route? {
+    ///
+    /// - Parameter croppedToAspect: when non-nil, the captured still is cropped to this
+    ///   width:height ratio (centered, matching `resizeAspectFill`'s crop) before Gate 1
+    ///   or upload sees it. Callers whose capture UI showed the live feed through an
+    ///   aspect-filled hole must pass that hole's aspect so the judged/submitted pixels
+    ///   match what the user actually aligned — otherwise Gate 1 and the reading model
+    ///   see content the user never saw framed in the viewfinder.
+    func submit(_ image: UIImage, croppedToAspect aspect: CGFloat? = nil) async -> AppState.Route? {
         state = .checking
+
+        let image = aspect.map { ImageProcessor.crop(image, toAspect: $0) } ?? image
 
         // GATE 1 — on-device. A miss here never leaves the phone (§6.2).
         let handDetected = (try? await ImageProcessor.detectHand(in: image)) ?? false

@@ -255,17 +255,25 @@ enum MainTab: Hashable, CaseIterable {
 /// The bar and its icons are drawn rather than sliced, following the mockup's language:
 /// a dark strip under a gold hairline, an ornate glyph over a small-caps label, and the
 /// bulb-framed plate (the one supplied art here) sliding behind whichever item is active.
+///
+/// READ is a normal resting tab like the others (it shows `CaptureView` as the tab
+/// root) — selecting it just moves the plate, the same as any other item.
+///
+/// The bar straddles the safe-area line on purpose: its dark background and hairline
+/// extend all the way to the physical bottom edge, behind the home indicator, while the
+/// glyph/label content stays inside `contentHeight` — the zone above the safe-area line
+/// — so nothing sits in the dead space under it.
 struct ArtNavBar: View {
     @Binding var selection: MainTab
-    let onRead: () -> Void
 
-    @Namespace private var plateNamespace
+    /// Height of the bar's interactive content zone, measured from the hairline down to
+    /// the safe-area line. Screens can use this to keep their own interactive elements
+    /// clear of the bar.
+    static let contentHeight: CGFloat = 64
 
     private struct Item {
         let tab: MainTab
         let label: String
-        /// READ is an action rather than a destination, so it never takes the plate.
-        var isAction: Bool { tab == .read }
     }
 
     private let items: [Item] = [
@@ -276,7 +284,6 @@ struct ArtNavBar: View {
         Item(tab: .settings, label: "SETTINGS"),
     ]
 
-    /// Index the plate rests on. READ never holds it, so it stays where it was.
     private var selectedIndex: Int {
         items.firstIndex { $0.tab == selection } ?? 0
     }
@@ -306,10 +313,10 @@ struct ArtNavBar: View {
 
                 HStack(spacing: 0) {
                     ForEach(items, id: \.tab) { item in
-                        let isSelected = !item.isAction && item.tab == selection
+                        let isSelected = item.tab == selection
 
                         Button {
-                            if item.isAction { onRead() } else { selection = item.tab }
+                            selection = item.tab
                         } label: {
                             VStack(spacing: plateHeight * 0.05) {
                                 NavGlyph(tab: item.tab)
@@ -323,14 +330,12 @@ struct ArtNavBar: View {
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.55)
                             }
-                            // Bottom-aligned within the plate's own footprint (with a
-                            // few points of breathing room) rather than pinned to the
-                            // plate's top, so the label sits near the plate's bottom
-                            // edge instead of floating in its upper half.
-                            .padding(.bottom, 4)
-                            .frame(width: itemWidth, height: plateHeight, alignment: .bottom)
-                            .padding(.top, topInset)
-                            .frame(width: itemWidth, height: proxy.size.height, alignment: .top)
+                            // Bottom-aligned within the content zone (with a few points
+                            // of breathing room above the safe-area line) rather than
+                            // pinned to the plate's top, so the label sits near the
+                            // bar's foot instead of floating in its upper half.
+                            .padding(.bottom, 6)
+                            .frame(width: itemWidth, height: Self.contentHeight, alignment: .bottom)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(NavPressStyle())
@@ -338,14 +343,25 @@ struct ArtNavBar: View {
                         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [.isButton])
                     }
                 }
+                .frame(width: proxy.size.width, height: Self.contentHeight, alignment: .top)
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
             .background(navBackdrop)
         }
-        .frame(height: 92)
+        .frame(height: Self.contentHeight)
     }
 
     /// Dark strip beneath a warm hairline, echoing the mockup's bar.
+    ///
+    /// Attached as a `.background()` on the fixed `contentHeight`-tall bar rather than
+    /// sized inline: a `.background()` gives a flexible view (this gradient has no
+    /// intrinsic size) the freedom to extend past its host's bounds when the background
+    /// itself opts out of safe-area avoidance, which is what carries the dark strip and
+    /// hairline down behind the home indicator while the icon/label content above stays
+    /// pinned at `contentHeight`, clear of the dead zone. Sizing the whole bar for that
+    /// manually (querying the safe-area inset and adding it to an outer `.frame`) double
+    /// counts the inset once `ignoresSafeArea` is applied on top of it — this is the
+    /// simpler, correct version of that.
     private var navBackdrop: some View {
         ZStack(alignment: .top) {
             LinearGradient(

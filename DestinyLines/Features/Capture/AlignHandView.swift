@@ -13,9 +13,34 @@ struct AlignHandView: View {
     @State private var camera = CameraController()
     @State private var submission = PalmSubmission()
 
-    /// Viewfinder interior in the background's coordinate space — matches the region the
-    /// hand-guide overlay was cut from.
+    /// Viewfinder hole in the background's coordinate space (fractions of the full raw
+    /// `bg_align` image, per `ArtLayout.standardFrame`'s coordinate contract). Both the
+    /// live feed and `hand_guide` are placed at this exact rect — `hand_guide` is not a
+    /// plain transparent line-art guide, it's a 1:1 pixel crop of `bg_align` itself
+    /// (banner sliver, frame border, hand outline, all baked in at partial opacity), cut
+    /// starting at this rect's raw top-left corner. So this rect is not "the interior of
+    /// the painted frame" — it deliberately starts above the frame's top border to include
+    /// the banner peek, and it is what registers `hand_guide`'s baked border pixel-for-
+    /// pixel onto `bg_align`'s own painted border underneath.
+    ///
+    /// Re-verified 2026-08-08 against the standardFrame (full-raw-image-fraction)
+    /// contract: composited `hand_guide.png` onto `bg_align.png` at this rect's raw pixel
+    /// origin (86, 282) with no scaling (690x993, `hand_guide`'s native size, equals this
+    /// rect's raw pixel size to within 0.5px) — the two border-line stacks landed exactly
+    /// on top of each other with zero visible seam. These values were already correct;
+    /// they predate the standardization but happen to have always been full-raw-image
+    /// fractions, so the standardization did not change what they resolve to. Do not
+    /// "correct" this to the frame's interior edges — that was tried and it breaks the
+    /// `hand_guide` registration (produces a visibly doubled border/banner).
     private let viewfinder = (x: 0.10, y: 0.155, w: 0.80, h: 0.545)
+
+    /// The hole's width:height ratio, in the same terms `resizeAspectFill` uses on the
+    /// live preview layer — derived from the raw asset's pixel size so it stays correct
+    /// if `bg_align` is re-exported at a different resolution (same content proportions).
+    private var viewfinderAspect: CGFloat {
+        let raw = ArtLayout.artSize("bg_align")
+        return (viewfinder.w * raw.width) / (viewfinder.h * raw.height)
+    }
 
     var body: some View {
         ArtScreen(image: "bg_align") { art in
@@ -44,7 +69,10 @@ struct AlignHandView: View {
             .clipShape(RoundedRectangle(cornerRadius: hole.width * 0.03))
 
             // …with the painted glow, crosshairs and brackets keyed over the top, so the
-            // guide reads against the feed instead of hiding it.
+            // guide reads against the feed instead of hiding it. `hand_guide`'s native
+            // pixel aspect (690x993) equals `hole`'s aspect by construction (see
+            // `viewfinder`'s doc comment), so a plain resizable fill is undistorted and
+            // pixel-registered — no aspect drift, no scaledToFill/clip needed.
             Image("hand_guide")
                 .resizable()
                 .artFrame(hole)
@@ -52,7 +80,7 @@ struct AlignHandView: View {
                 .accessibilityHidden(true)
 
             BackButton { dismiss() }
-                .artFrame(art.rect(0.045, 0.052, 0.12, 0.045))
+                .artFrame(ArtChrome.backFrame())
 
             // Tip plate.
             HStack(spacing: art.frame.width * 0.02) {
@@ -104,7 +132,10 @@ struct AlignHandView: View {
 
     private func captureAndSubmit() async {
         guard let image = await camera.capturePhoto() else { return }
-        if let route = await submission.submit(image) {
+        // Crop to what the live preview actually showed inside the hole before anything
+        // downstream sees the photo — Gate 1 and the upload must judge the same pixels
+        // the user aligned, not the full uncropped sensor frame. See `viewfinderAspect`.
+        if let route = await submission.submit(image, croppedToAspect: viewfinderAspect) {
             appState.navigate(route)
         }
     }

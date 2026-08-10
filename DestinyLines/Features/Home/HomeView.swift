@@ -12,7 +12,7 @@ struct HomeView: View {
     @Environment(AudioPlayer.self) private var audio
 
     var body: some View {
-        ArtScreen(image: "bg_home", fitsWidth: true) { art in
+        ArtScreen(image: "bg_home") { art in
             // Sound toggle in the painted well, top left. The well itself is artwork,
             // so only the glyph is drawn.
             WellButton(
@@ -66,7 +66,7 @@ struct HomeView: View {
             .allowsHitTesting(false)
 
             ArtHotspot(rect: art.rect(0.10, 0.700, 0.80, 0.105), label: "New Reading") {
-                appState.navigate(.capture)
+                appState.tab = .read
             }
         }
     }

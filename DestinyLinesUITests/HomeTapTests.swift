@@ -71,14 +71,26 @@ final class ArtHotspotTests: XCTestCase {
                       "Home tab did not return")
     }
 
-    func testReadLaunchesCaptureFlowAndHidesNav() throws {
+    /// READ is a normal resting tab (it shows Capture as the tab root), not a push — so
+    /// the global nav bar stays up, and there's no back button since there's nothing to
+    /// pop back to.
+    func testReadIsATabThatKeepsNavVisible() throws {
         let app = launch("home")
         app.buttons["Read"].tap()
 
         XCTAssertTrue(element(containing: "CHOOSE FROM PHOTOS", in: app).waitForExistence(timeout: 5),
-                      "READ did not open the capture flow")
-        XCTAssertFalse(app.buttons["Insights"].isHittable,
-                       "The nav bar should be hidden inside the capture flow")
+                      "READ did not show the capture screen")
+        XCTAssertTrue(app.buttons["Insights"].isHittable,
+                      "The nav bar should stay visible — READ is a tab, not a pushed flow screen")
+        XCTAssertFalse(app.buttons["Back"].exists,
+                       "The READ tab root has nothing to pop back to, so it shouldn't show a back button")
+
+        // The plate should now rest on READ like any other tab.
+        app.buttons["Home"].tap()
+        XCTAssertTrue(app.buttons["New Reading"].waitForExistence(timeout: 5))
+        app.buttons["Read"].tap()
+        XCTAssertTrue(element(containing: "CHOOSE FROM PHOTOS", in: app).waitForExistence(timeout: 5),
+                      "READ did not return to the capture screen")
     }
 
     // MARK: - Screens

@@ -9,7 +9,7 @@ struct SplashView: View {
     @State private var progress: CGFloat = 0.05
 
     var body: some View {
-        ArtScreen(image: "bg_splash", ignoresSafeArea: true) { art in
+        ArtScreen(image: "bg_splash", cover: true, ignoresSafeAreaEdges: .all) { art in
             VStack(spacing: art.frame.height * 0.010) {
                 Text("SEEING POSSIBILITIES...")
                     .font(.custom("Rye-Regular", size: art.fontSize(0.0125)))

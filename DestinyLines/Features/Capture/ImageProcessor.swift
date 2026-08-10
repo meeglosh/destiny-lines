@@ -28,6 +28,47 @@ enum ImageProcessor {
         }.value
     }
 
+    /// Centered crop to a target width:height ratio, matching the crop
+    /// `AVCaptureVideoPreviewLayer`'s `.resizeAspectFill` applies when it displays the
+    /// live feed inside a hole of a different aspect than the sensor: scale to cover,
+    /// then keep only the centered region that was visible. Used so what Gate 1 judges
+    /// and what gets uploaded is exactly what the user saw framed on screen — not extra
+    /// sensor area the aspect-filled preview silently cropped away from view.
+    ///
+    /// Normalizes orientation first (draws through `UIImage.draw(in:)`, which honors
+    /// `imageOrientation`) so the crop rect is computed and applied in the same upright,
+    /// on-screen space the user aligned their hand in, regardless of how the camera
+    /// reported the buffer's raw orientation.
+    static func crop(_ image: UIImage, toAspect targetAspect: CGFloat) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        let displaySize = image.size
+        let normalized = UIGraphicsImageRenderer(size: displaySize, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: displaySize))
+        }
+        guard let cgImage = normalized.cgImage else { return image }
+
+        let pixelWidth = CGFloat(cgImage.width)
+        let pixelHeight = CGFloat(cgImage.height)
+        let sourceAspect = pixelWidth / pixelHeight
+
+        let cropRect: CGRect
+        if sourceAspect > targetAspect {
+            // Source is relatively wider than the hole — crop the sides, keep full height.
+            let cropWidth = (pixelHeight * targetAspect).rounded()
+            cropRect = CGRect(x: ((pixelWidth - cropWidth) / 2).rounded(), y: 0,
+                               width: cropWidth, height: pixelHeight)
+        } else {
+            // Source is relatively taller than the hole — crop top/bottom, keep full width.
+            let cropHeight = (pixelWidth / targetAspect).rounded()
+            cropRect = CGRect(x: 0, y: ((pixelHeight - cropHeight) / 2).rounded(),
+                               width: pixelWidth, height: cropHeight)
+        }
+
+        guard let cropped = cgImage.cropping(to: cropRect) else { return normalized }
+        return UIImage(cgImage: cropped, scale: normalized.scale, orientation: .up)
+    }
+
     /// Downscale to a 1024px long edge and re-encode as JPEG at 0.8 quality.
     /// Re-encoding through UIGraphicsImageRenderer produces a fresh bitmap with no
     /// source metadata, which is the EXIF strip §6.1 requires (GPS included).

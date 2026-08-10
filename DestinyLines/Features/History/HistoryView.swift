@@ -33,14 +33,16 @@ struct HistoryView: View {
             // covers this art below roughly 0.808. The frame's own baked bottom border
             // and NEW READING plate sit lower than that and are never actually visible,
             // so both the row list and the live button below stop well short of them.
-            .artFrame(art.rect(0.115, 0.210, 0.77, 0.50))
+            .artFrame(art.rect(0.115, 0.210, 0.77, 0.49))
 
             // NEW READING, positioned to clear the nav bar rather than matching the
-            // (permanently hidden) baked plate lower on this art.
+            // (permanently hidden) baked plate lower on this art. Pixel-checked against
+            // `ArtNavBar.contentHeight` (64pt) so the plate's bottom edge lands >= 8pt
+            // above the nav's content zone instead of tucking under its hairline.
             ArtButton(style: .primary, title: "NEW READING") {
-                appState.navigate(.capture)
+                appState.tab = .read
             }
-            .artFrame(art.rect(0.135, 0.735, 0.73, 0.062))
+            .artFrame(art.rect(0.135, 0.705, 0.73, 0.062))
         }
     }
 

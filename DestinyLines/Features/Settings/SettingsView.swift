@@ -114,7 +114,7 @@ struct PrivacyExplainerView: View {
     var body: some View {
         ArtScreen(image: "bg_frame") { art in
             BackButton { dismiss() }
-                .artFrame(art.rect(0.055, 0.062, 0.12, 0.045))
+                .artFrame(ArtChrome.backFrame())
 
             Text("YOUR PRIVACY")
                 .font(.custom("Rye-Regular", size: art.fontSize(0.026)))

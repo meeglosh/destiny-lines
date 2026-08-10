@@ -18,13 +18,8 @@ final class AppState {
 
     // MARK: - Top-level tabs (global nav bar)
 
-    var tab: MainTab = .home {
-        didSet {
-            // READ is an action, not a destination: bounce back so the bar never rests
-            // on it while the capture flow is pushed over the shell.
-            if tab == .read { tab = oldValue == .read ? .home : oldValue }
-        }
-    }
+    // READ is a normal resting tab: MainShell shows CaptureView as its tab root.
+    var tab: MainTab = .home
 
     // MARK: - Flow routes (pushed over the shell; nav bar not shown)
 

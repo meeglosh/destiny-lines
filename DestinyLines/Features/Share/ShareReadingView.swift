@@ -12,12 +12,20 @@ struct ShareReadingView: View {
     @State private var saveMessage: String?
 
     /// The four painted insight rows: icon wells on the left, text to their right.
-    private let insightY: [CGFloat] = [0.618, 0.652, 0.686, 0.720]
+    ///
+    /// Values are the text rect's *top* edge (see `art.rect`'s contract), derived from
+    /// the wells' pixel-measured centers in bg_share.png — star/heart/sun/moon ring
+    /// centroids at raw y fractions 0.5786, 0.6174, 0.6580, 0.6986 (luminance-threshold
+    /// scan of the well column, x 221-281px of the 863x1822 export) — minus half the
+    /// 0.030 row height, so each text vertically centers on its well. The previous
+    /// values were shifted a full row low: text 0 sat beside well 1, and the 4th text
+    /// had no well beneath it at all.
+    private let insightY: [CGFloat] = [0.5636, 0.6024, 0.6430, 0.6836]
 
     var body: some View {
-        ArtScreen(image: "bg_share") { art in
+        ArtScreen(image: "bg_share", scrollable: true, bottomInset: 28) { art in
             BackButton { dismiss() }
-                .artFrame(art.rect(0.05, 0.045, 0.11, 0.045))
+                .artFrame(ArtChrome.backFrame())
 
             ForEach(Array(reading.content.keyInsights.prefix(4).enumerated()), id: \.offset) { index, insight in
                 Text(insight)
@@ -25,7 +33,10 @@ struct ShareReadingView: View {
                     .foregroundStyle(Theme.goldLight)
                     .lineLimit(2)
                     .minimumScaleFactor(0.65)
-                    .artFrame(art.rect(0.285, insightY[index], 0.50, 0.030), alignment: .leading)
+                    // x nudged from the previous 0.285 to 0.33: the well's own ring
+                    // clears out to ~0.316 of the raw art (pixel-measured), so 0.285
+                    // rendered the first letter of every row behind the well's glow.
+                    .artFrame(art.rect(0.33, insightY[index], 0.45, 0.030), alignment: .leading)
                     .allowsHitTesting(false)
             }
 
@@ -116,7 +127,10 @@ struct ShareCardComposite: View {
     /// Rendered at the artwork's own proportions (863 x 1822 → a story-shaped card).
     private let width: CGFloat = 863
     private let height: CGFloat = 1822
-    private let rows: [CGFloat] = [0.612, 0.647, 0.682, 0.717]
+    /// Same well-centered rows as the live preview's `insightY` (see `ShareReadingView`);
+    /// this composite is rendered at the raw art's own 863x1822 dimensions, so the
+    /// fractions are directly comparable.
+    private let rows: [CGFloat] = [0.5636, 0.6024, 0.6430, 0.6836]
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -129,8 +143,8 @@ struct ShareCardComposite: View {
                     .font(.custom("AlegreyaSans-Regular", size: height * 0.0122))
                     .foregroundStyle(Theme.goldLight)
                     .lineLimit(2)
-                    .frame(width: width * 0.55, alignment: .leading)
-                    .offset(x: width * 0.245, y: height * rows[index])
+                    .frame(width: width * 0.45, alignment: .leading)
+                    .offset(x: width * 0.33, y: height * rows[index])
             }
         }
         .frame(width: width, height: height)
